@@ -1,0 +1,9 @@
+import string;
+
+main()
+{
+    intArr = [1,2,3];
+    strArr = map(intArr,i2s);
+    println(strArr);
+    println(strGlue(strArr," "));
+}
