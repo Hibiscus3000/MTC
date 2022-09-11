@@ -1,0 +1,69 @@
+import string;
+import sys/system;
+
+fiba : (n: int) -> [int];
+fibb : (acc: [int], n: int, prev: int, pprev: int) -> [int];
+fibc : (accRef: ref [int], n: int, prev: int, pprev: int) -> ref [int];
+println3: (str: string, intArr: [int]) -> void;
+
+fiba(n)
+{
+    if (n <= 0)
+        []
+    else if (1 == n)
+        [0]
+    else if (2 == n)
+        [0,1]
+    else
+    {
+        prevArr = fiba(n-1);
+        arrLength = length(prevArr);
+        concat(prevArr,[prevArr[arrLength - 2] + prevArr[arrLength - 1]]);
+    }
+}
+
+fibb(acc,n,prev,pprev)
+{
+    if (n <= 0)
+        []
+    else if (1 == n)
+        acc
+    else
+        fibb(arrayPush(acc,prev + pprev),n - 1, prev + pprev, prev);
+}
+
+fibc(accRef, n, prev, pprev)
+{
+    if (n <= 0)
+        ref []
+    else if (1 == n)
+        accRef
+    else
+    {
+        refArrayPush(accRef,prev + pprev);
+        fibc(accRef, n - 1, prev + pprev, prev);
+    }
+}   
+
+println3(str,intArr)
+{
+    print(str);
+    println(intArr);
+}
+
+main()
+{
+    println3("fiba(10) = ",fiba(10));
+    println3("fiba(-2) = ",fiba(-2));
+    println3("fiba(1) = ",fiba(1));
+    println3("fiba(2) = ",fiba(2));
+    println3("fibb(10) = ",fibb([0],10,0,1)); 
+    println3("fibb(0) = ",fibb([0],0,0,1)); 
+    println3("fibb(1) = ",fibb([0],1,0,1)); 
+    println3("fibb(2) = ",fibb([0],2,0,1)); 
+    println3("fibc(10) = ",^(fibc(ref [0],10,0,1))); 
+    println3("fibc(0) = ",^(fibc(ref [0],0,0,1))); 
+    println3("fibc(1) = ",^(fibc(ref [0],1,0,1))); 
+    println3("fibc(2) = ",^(fibc(ref [0],2,0,1))); 
+    println3("fibc(30) = ",^(fibc(ref [0],30,0,1))); 
+}
