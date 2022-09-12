@@ -1,0 +1,60 @@
+import string;
+import ds/tree;
+import sys/system;
+
+inds(a: [int], m: int) -> [Pair<int, int>];
+treeInds(a: [int], m: int) -> [Pair<int,int>];
+println3(pairArr : [Pair<int,int>]) -> void;
+createPairs(pairArrRef: ref [Pair<int,int>], a1: Maybe<[int]>, a2: [int]) -> void;
+
+inds(a,m)
+{
+    pairArrRef = ref [];
+    fori(0, length(a) - 1,
+        \i -> fori(0, length(a) - 1,
+            \j -> if (a[i] + a[j] == m) 
+                refArrayPush(pairArrRef,Pair(i + 1,j + 1))));
+    ^pairArrRef;
+}
+
+treeInds(a,m)
+{
+    pairArrRef = ref [];
+    aUnique = ref [];
+    tree = foldi(a,makeTree(), \i,acc,e ->
+    {
+        value = lookupTree(acc,e);
+        value ?? setTree(acc,e,arrayPush(value,i + 1)) : {refArrayPush(aUnique,e); setTree(acc,e,[i + 1]);}
+    });
+    fori(0,length(^aUnique) - 1, \i -> 
+    {
+        pairIndices = lookupTree(tree,m - ^aUnique[i]);
+        pairIndices ?? createPairs(pairArrRef,lookupTree(tree,^aUnique[i]),pairIndices) : {};
+    });
+    ^pairArrRef;
+}
+
+createPairs(pairArrRef,a1,a2)
+{
+    a1 ?? fori(0, length(a1) - 1,
+        \i -> fori(0,length(a2) - 1,
+            \j -> refArrayPush(pairArrRef,Pair(a1[i],a2[j])))) : {};
+}
+
+println3(pairArr)
+{
+    fori(0,length(pairArr) - 1, \i -> 
+    {
+        if (0 == i % 10 && 0 != i)
+            println("");
+        print("(" + i2s(firstOfPair(pairArr[i])) + "," + i2s(secondOfPair(pairArr[i])) + ") ");
+    });
+    println("");
+    println("");
+}
+
+main()
+{
+    println3(inds([1,2,3,4,5,6,7,8,9,10,9,8,7,6,5,4,3,2,1],10));
+    println3(treeInds([1,2,3,4,5,6,7,8,9,10,9,8,7,6,5,4,3,2,1],10));
+}
