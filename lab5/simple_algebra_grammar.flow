@@ -1,4 +1,52 @@
-Exp ::= Add, Int, Product;
+import lingo/pegcode/driver;
+
+Exp ::= Add, Int, Product, Parantheses;
+	Parantheses : (e : Exp);
     Product : (e1 : Exp, e2 : Exp);
 	Add : (e1 : Exp, e2 : Exp);
 	Int : (i : int);
+
+lingoGrammarOp : ref Maybe<[PegOp]> = ref None();
+
+lingoGrammar()
+{
+	onlyOnce(lingoGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab5/simple_algebra_grammar.lingo");
+	});
+}
+
+e2s(e : Exp) -> string
+{
+	switch (e : Exp)
+	{
+		Parantheses(e1) :
+			"(" + e2s(e1) + ")";
+		Product(e1,e2) :
+			e2s(e1) + "*" + e2s(e2);
+		Add(e1,e2) :
+			e2s(e1) + "+" + e2s(e2);
+		Int(i) :
+			i2s(i);
+	}
+}
+
+calc(e : Exp) -> int
+{
+	switch(e : Exp)
+	{
+		Parantheses(e1) :
+			calc(e1);
+		Product(e1,e2) :
+			calc(e1) * calc(e2);
+		Add(e1,e2) :
+			calc(e1) + calc(e2);
+		Int(i) :
+			i;
+	}
+}
+
+main()
+{
+	result = parsic(lingoGrammar(), "(    7*1 + (1 * 45    ) )", defaultPegActions);
+	println(e2s(result) + "=" + i2s(calc(result)));
+}
