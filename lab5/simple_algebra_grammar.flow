@@ -1,0 +1,4 @@
+Exp ::= Add, Int, Product;
+    Product : (e1 : Exp, e2 : Exp);
+	Add : (e1 : Exp, e2 : Exp);
+	Int : (i : int);
