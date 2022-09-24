@@ -1,0 +1,16 @@
+import MTC/lab6/calcRPN;
+
+main()
+{
+	test1 = "(((1  + 2 +   3))) *45";
+	result1 = parsic(simpleAlgebraGrammar(), test1, defaultPegActions);
+	println(test1 + " = " + e2s(result1) + " = " + i2s(calc(result1)) + " = " + s2RPN(test1));
+
+	test2 = "+ * + 1 1 123 * 33 25";
+	result2 = parsic(PNAlgebraGrammar(), test2, defaultPegActions);
+	println(test2 + " = " + e2s(result2) + " = " + i2s(calc(result2)));
+
+    test = "16876 2 + 5 * 5 * 5 + 1 + 1 * 7 5 5 * + *";
+	println(test + " = " + RPN2s(test) + " = " + i2s(calcRPN(test)) + " =");
+    println("= " + s2RPN(RPN2s(test)));
+}

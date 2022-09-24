@@ -1,0 +1,52 @@
+import string;
+import MTC/lab5/AST;
+
+export
+{
+    calcRPN(rpn : string) -> int;   
+    RPN2e(rpn : string) -> Expr;
+    e2RPN(e : Expr) -> string;
+    RPN2s(rpn : string) -> string;
+    s2RPN(str : string) -> string;
+}
+
+NumStack (num : int, stack : Maybe<NumStack>);
+
+calcRPN(rpn)
+{
+    calc(RPN2e(rpn));
+}   
+
+RPN2e(rpn)
+{
+    reverseNumbersInExpr(parsic(PNAlgebraGrammar(), reverse(rpn), defaultPegActions));
+}
+
+reverseNumbersInExpr(e : Expr)
+{
+    switch (e : Expr) {
+        Add(e1,e2) : Add(reverseNumbersInExpr(e1),reverseNumbersInExpr(e2));
+        Product(e1,e2) : Product(reverseNumbersInExpr(e1),reverseNumbersInExpr(e2));
+        Int(i) : Int(s2i(reverse(i2s(i))));
+    }
+}
+
+e2RPN(e)
+{
+    switch (e : Expr)
+    {
+        Add(e1,e2) : e2RPN(e1) + " " + e2RPN(e2) + " +";
+        Product(e1,e2) : e2RPN(e1) + " " + e2RPN(e2) + " *";
+        Int(i) : i2s(i);
+    }
+}
+
+RPN2s(rpn)
+{
+    e2s(RPN2e(rpn));
+}
+
+s2RPN(str)
+{
+    e2RPN(parsic(simpleAlgebraGrammar(),str,defaultPegActions));
+}

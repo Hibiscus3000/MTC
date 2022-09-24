@@ -8,6 +8,8 @@ export
 		Int : (i : int);
 	e2s(e : Expr) -> string;
 	calc(e : Expr) -> int;
+	PNAlgebraGrammar() -> [PegOp];
+	simpleAlgebraGrammar()  -> [PegOp];
 }
 
 simpleAlgebraGrammarOp : ref Maybe<[PegOp]> = ref None();
@@ -27,17 +29,17 @@ PNAlgebraGrammar()
 	});
 }
 
-e2s_parantheses(e : Expr, underMultiply : bool) -> string
+e2sParentheses(e : Expr, underMultiply : bool) -> string
 {
 	switch (e : Expr)
 	{
 		Product(e1,e2) :
-			e2s_parantheses(e1,true) + " * " + e2s_parantheses(e2,true);
+			e2sParentheses(e1,true) + " * " + e2sParentheses(e2,true);
 		Add(e1,e2) :
 			if (underMultiply)
-				"(" + e2s_parantheses(e1,false) + " + " + e2s_parantheses(e2,false) + ")"
+				"(" + e2sParentheses(e1,false) + " + " + e2sParentheses(e2,false) + ")"
 			else
-				e2s_parantheses(e1,false) + " + " + e2s_parantheses(e2,false);
+				e2sParentheses(e1,false) + " + " + e2sParentheses(e2,false);
 		Int(i) :
 			i2s(i);
 	}
@@ -45,7 +47,7 @@ e2s_parantheses(e : Expr, underMultiply : bool) -> string
 
 e2s(e)
 {
-	e2s_parantheses(e,false);
+	e2sParentheses(e,false);
 }
 
 calc(e)
@@ -61,13 +63,3 @@ calc(e)
 	}
 }
 
-main()
-{
-	test1 = "(((1  + 2 +   3))) *45";
-	result1 = parsic(simpleAlgebraGrammar(), test1, defaultPegActions);
-	println(test1 + " = " + e2s(result1) + " = " + i2s(calc(result1)));
-
-	test2 = "+ * + 1 1 123 * 33 25";
-	result2 = parsic(PNAlgebraGrammar(), test2, defaultPegActions);
-	println(test2 + " = " + e2s(result2) + " = " + i2s(calc(result2)));
-}
