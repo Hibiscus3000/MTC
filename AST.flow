@@ -1,0 +1,73 @@
+import lingo/pegcode/driver;
+
+export 
+{
+	Expr ::= Add, Int, Product;
+    	Product : (e1 : Expr, e2 : Expr);
+		Add : (e1 : Expr, e2 : Expr);
+		Int : (i : int);
+	e2s(e : Expr) -> string;
+	calc(e : Expr) -> int;
+}
+
+simpleAlgebraGrammarOp : ref Maybe<[PegOp]> = ref None();
+PNAlgebraGrammarOp : ref Maybe<[PegOp]> = ref None();
+
+simpleAlgebraGrammar()
+{
+	onlyOnce(simpleAlgebraGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab5/simple_algebra_grammar.lingo");
+	});
+}
+
+PNAlgebraGrammar()
+{
+	onlyOnce(PNAlgebraGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab6/PN_algebra_grammar.lingo");
+	});
+}
+
+e2s_parantheses(e : Expr, underMultiply : bool) -> string
+{
+	switch (e : Expr)
+	{
+		Product(e1,e2) :
+			e2s_parantheses(e1,true) + " * " + e2s_parantheses(e2,true);
+		Add(e1,e2) :
+			if (underMultiply)
+				"(" + e2s_parantheses(e1,false) + " + " + e2s_parantheses(e2,false) + ")"
+			else
+				e2s_parantheses(e1,false) + " + " + e2s_parantheses(e2,false);
+		Int(i) :
+			i2s(i);
+	}
+}
+
+e2s(e)
+{
+	e2s_parantheses(e,false);
+}
+
+calc(e)
+{
+	switch(e : Expr)
+	{
+		Product(e1,e2) :
+			calc(e1) * calc(e2);
+		Add(e1,e2) :
+			calc(e1) + calc(e2);
+		Int(i) :
+			i;
+	}
+}
+
+main()
+{
+	test1 = "(((1  + 2 +   3))) *45";
+	result1 = parsic(simpleAlgebraGrammar(), test1, defaultPegActions);
+	println(test1 + " = " + e2s(result1) + " = " + i2s(calc(result1)));
+
+	test2 = "+ * + 1 1 123 * 33 25";
+	result2 = parsic(PNAlgebraGrammar(), test2, defaultPegActions);
+	println(test2 + " = " + e2s(result2) + " = " + i2s(calc(result2)));
+}

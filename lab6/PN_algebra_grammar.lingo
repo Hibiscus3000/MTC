@@ -1,0 +1,8 @@
+expr = plus expr:e1 expr:e2 {Add(:e1,:e2)} |
+    asterisk expr:e1 expr:e2 {Product(:e1,:e2)} |
+    int:i {:i};
+int = sp* digit+$d sp* {Int(s2i($d))};
+digit = '0'-'9';
+asterisk = sp* '*' sp*;
+plus = sp* '+' sp*;
+sp = ' ';
