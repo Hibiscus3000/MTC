@@ -2,15 +2,17 @@ import MTC/lab6/calcRPN;
 
 main()
 {
-	test1 = "(1 + 2) *  2 * (16 + 16) * 3";
+	test1 = "1 + 2 *  2 * (16 + 16) * 3";
 	result1 = parsic(simpleAlgebraGrammar(), test1, defaultPegActions);
 	println(test1 + " = " + e2s(result1) + " = " + i2s(calc(result1)) + " = " + s2RPN(test1));
+	println("= " + s2PN(test1) + " = " + i2s(calcPN(s2PN(test1))));
 
 	test2 = "+ * + 1 1 123 * 33 25";
 	result2 = parsic(PNAlgebraGrammar(), test2, defaultPegActions);
-	println(test2 + " = " + e2s(result2) + " = " + i2s(calc(result2)));
+	println(test2 + " = " + PN2s(test2) + " = " + s2PN(PN2s(test2) ) + " = " + i2s(calc(result2)));
+	println("= " + i2s(calcPN(test2)));
 
-    test = "16876 2 + 5 * 5 * 5 + 1 + 1 * 7 5 5 * + *";
-	println(test + " = " + RPN2s(test) + " = " + i2s(calcRPN(test)) + " =");
-    println("= " + s2RPN(RPN2s(test)));
+    test3 = "16876 2 + 4 + 3 4 5 + + + 3  3 * 3 3 3 * * + +";
+	println(test3 + " = " + RPN2s(test3) + " = " + i2s(calcRPN(test3)) + " =");
+    println("= " + s2RPN(RPN2s(test3)));
 }

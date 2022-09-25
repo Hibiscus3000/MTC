@@ -8,24 +8,15 @@ export
 		Int : (i : int);
 	e2s(e : Expr) -> string;
 	calc(e : Expr) -> int;
-	PNAlgebraGrammar() -> [PegOp];
-	simpleAlgebraGrammar()  -> [PegOp];
+	simpleAlgebraGrammar() -> [PegOp];
 }
 
 simpleAlgebraGrammarOp : ref Maybe<[PegOp]> = ref None();
-PNAlgebraGrammarOp : ref Maybe<[PegOp]> = ref None();
 
 simpleAlgebraGrammar()
 {
 	onlyOnce(simpleAlgebraGrammarOp, \ -> {
 		compilePegGrammar("#include MTC/lab5/simple_algebra_grammar.lingo");
-	});
-}
-
-PNAlgebraGrammar()
-{
-	onlyOnce(PNAlgebraGrammarOp, \ -> {
-		compilePegGrammar("#include MTC/lab6/PN_algebra_grammar.lingo");
 	});
 }
 

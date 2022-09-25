@@ -3,19 +3,88 @@ import MTC/lab5/simple_algebra_grammar;
 
 export
 {
-    calcRPN(rpn : string) -> int;   
-    RPN2e(rpn : string) -> Expr;
+    e2PN(e : Expr) -> string;
     e2RPN(e : Expr) -> string;
+    PN2s(pn : string) -> string;
     RPN2s(rpn : string) -> string;
+    s2PN(str : string) -> string;
     s2RPN(str : string) -> string;
+    calcRPN(rpn : string) -> int;
+    calcPN(pn : string) -> int;
+    buildAdd(xs : [flow]) -> Add;
+    buildProduct(xs : [flow]) -> Product;
+    PNAlgebraGrammar() -> [PegOp]; 
 }
 
-NumStack (num : int, stack : Maybe<NumStack>);
+PNAlgebraGrammarOp : ref Maybe<[PegOp]> = ref None();
+RPNAlgebraGrammarOp : ref Maybe<[PegOp]> = ref None();
+
+PNAlgebraGrammar()
+{
+	onlyOnce(PNAlgebraGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab6/PN_algebra_grammar.lingo");
+	});
+}
+
+e2PN(e)
+{
+    switch (e : Expr)
+    {
+        Add(e1,e2) : "+ " + e2PN(e1) + " " + e2PN(e2);
+        Product(e1,e2) : "* " + e2PN(e1) + " " + e2PN(e2);
+        Int(i) : i2s(i);
+    }
+}
+
+e2RPN(e)
+{
+    switch (e : Expr)
+    {
+        Add(e1,e2) : e2RPN(e1) + " " + e2RPN(e2) + " +";
+        Product(e1,e2) : e2RPN(e1) + " " + e2RPN(e2) + " *";
+        Int(i) : i2s(i);
+    }
+}
+
+PN2s(pn)
+{
+    e2s(parsic(PNAlgebraGrammar(), pn, defaultPegActions));
+}
+
+RPN2s(rpn)
+{
+    e2s(RPN2e(rpn));
+}
+
+s2PN(str)
+{
+    e2PN(parsic(simpleAlgebraGrammar(),str,defaultPegActions));
+}
+
+s2RPN(str)
+{
+    e2RPN(parsic(simpleAlgebraGrammar(),str,defaultPegActions));
+}
 
 calcRPN(rpn)
 {
-    calc(RPN2e(rpn));
-}   
+    calc(RPN2e(rpn));   
+}
+
+calcPN(pn)
+{
+    calc(parsic(PNAlgebraGrammar(),pn,defaultPegActions));
+}
+
+buildAdd(xs)
+{
+    fold(xs[1], xs[0], \acc, x -> Add(acc, x));
+}
+
+buildProduct(xs)
+{
+    fold(xs[1], xs[0], \acc, x -> Product(acc, x));
+}
 
 RPN2e(rpn)
 {
@@ -31,22 +100,3 @@ reverseNumbersInExpr(e : Expr)
     }
 }
 
-e2RPN(e)
-{
-    switch (e : Expr)
-    {
-        Add(e1,e2) : e2RPN(e1) + " " + e2RPN(e2) + " +";
-        Product(e1,e2) : e2RPN(e1) + " " + e2RPN(e2) + " *";
-        Int(i) : i2s(i);
-    }
-}
-
-RPN2s(rpn)
-{
-    e2s(RPN2e(rpn));
-}
-
-s2RPN(str)
-{
-    e2RPN(parsic(simpleAlgebraGrammar(),str,defaultPegActions));
-}
