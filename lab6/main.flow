@@ -2,7 +2,7 @@ import MTC/lab6/calcRPN;
 
 main()
 {
-	test1 = "(((1  + 2 +   3))) *45";
+	test1 = "(1 + 2) *  2 * (16 + 16) * 3";
 	result1 = parsic(simpleAlgebraGrammar(), test1, defaultPegActions);
 	println(test1 + " = " + e2s(result1) + " = " + i2s(calc(result1)) + " = " + s2RPN(test1));
 

@@ -1,0 +1,13 @@
+expr = proddiv:p '+' expr:e {Add(:p,:e)} | proddiv:p '-' expr:e {Sub(:p,:e)} | proddiv:p {:p};
+proddiv = parentheses:par '*' proddiv:proddiv {Product(:par,:proddiv)} |
+     parentheses:par '/' proddiv:proddiv {Div(:par,:proddiv)} |
+     parentheses:p {:p};
+parentheses = sp* '(' sp* expr:e sp* ')' sp* {:e} | neg:n {:n};
+sumsub = arg:a '+' expr:e {Add(:a,:e)} | arg:a '-' expr:e {Sub(:a,:e)} | neg:n {:n};
+neg = sp* '-' proddiv:p {Neg(:p)} | arg:a {:a};
+arg = int:i {:i} | var:v {:v};
+int = sp* digit+$d sp* {Rational(s2i($d),1)};
+var = sp* letter+$str sp* {Var($str)};
+letter = 'a' - 'z' | 'A' - 'Z';
+digit = '0'-'9';
+sp = ' ';

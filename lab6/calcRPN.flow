@@ -1,5 +1,5 @@
 import string;
-import MTC/lab5/AST;
+import MTC/lab5/simple_algebra_grammar;
 
 export
 {
