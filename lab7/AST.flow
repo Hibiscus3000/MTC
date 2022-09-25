@@ -1,0 +1,152 @@
+import lingo/pegcode/driver;
+
+export 
+{
+	Expr ::= Rational, Var, Neg, Add, Sub, Product, Div;
+		Div : (e1 : Expr, e2 : Expr);
+    	Product : (e1 : Expr, e2 : Expr);
+		Sub : (e1 : Expr, e2 : Expr);
+		Add : (e1 : Expr, e2 : Expr);
+		Neg : (e : Expr);
+		Var : (s : string);
+		Rational : (numerator : int, denominator : int);
+		
+	buildSub(xs : [flow]) -> Sub;
+	getRational(n : int, d : int) -> Rational;
+	var2r(s : string, values : [Pair<string,string>]) -> Rational;
+	s2r(str : string) -> Rational;
+}
+
+buildSub(xs)
+{
+	fold(xs[1], xs[0], \acc, x -> Sub(acc, x));
+}
+
+getRational(n, d)
+{
+	if (0 == d)
+		Rational(0,0)
+	else
+		if (0 == n)
+			Rational(0,1)
+		else
+		{
+			gcd = GCD(n,d);
+			if (d < 0)
+				Rational(- n / gcd,- d / gcd)
+			else
+				Rational(n / gcd, d / gcd);
+		}
+}
+
+GCD(a : int, b : int)
+{
+	a1 = if (a > 0) a else -a;
+	b1 = if (b > 0) b else -b;
+	if (a1 > b1)
+		GCD_sorted(b1,a1 % b1)
+	else
+		GCD_sorted(a1, b1 % a1);
+}
+
+GCD_sorted(a : int, b : int)
+{
+	if (0 == b)
+		a
+	else
+		GCD_sorted(b,a % b);
+}
+
+LCM(a : int, b : int)
+{
+	a * b / GCD(a,b);
+}
+
+var2r(s, values)
+{
+	valueStr = fold(values,"",\valStr, val ->
+		if (val.first == s) val.second else valStr);
+	if ("" == valueStr)
+		Rational(1,0)
+	else
+	{
+		rational = s2r(valueStr); 
+		getRational(rational.numerator,rational.denominator);
+	}
+}
+
+s2r(str)
+{
+	neg = ref 1;
+	onDigits = ref false;
+	slashFound = ref false;
+	invalid = ref false;
+	finished = ref false;
+	firstDigit = ref 0;
+	num = ref 0;
+	denom = ref 0;
+	fori(0,strlen(str) - 1, \i ->
+	{
+		if (!^finished && !^invalid)
+			if (^onDigits)
+			{
+				if (!isDigit(getCharAt(str,i)))
+				{
+					onDigits := false;
+					if ("-" == getCharAt(str,i))
+						invalid := true
+					else
+					{
+						if (^slashFound)
+						{
+							denom := s2i(substring(str,^firstDigit,i - ^firstDigit));
+							finished := true;
+						}
+						if ("/" == getCharAt(str,i))
+						{
+							if (^slashFound)
+								invalid := true
+							else
+								slashFound := true;
+						}
+						else
+							num := s2i(substring(str,^firstDigit,i - ^firstDigit));
+					}
+				}
+			}
+			else
+			{
+				if ("-" == getCharAt(str,i))
+					neg := ^neg * -1
+				else
+					if (" " == getCharAt(str,i))
+					{}
+					else
+						if (isDigit(getCharAt(str,i)))
+						{
+							onDigits := true;
+							firstDigit := i;
+						}
+						else
+							if ("/" == getCharAt(str,i) && !^slashFound)
+								slashFound := true
+							else
+								invalid := true;
+			}
+	});
+	if (^onDigits)
+		if (^slashFound)
+		{
+			denom := s2i(substring(str,^firstDigit,strlen(str) - ^firstDigit));
+			finished := true; 
+		}
+		else
+			num := s2i(substring(str,^firstDigit,strlen(str) - ^firstDigit));
+	if (^invalid)
+		Rational(0,0)
+	else
+		if (^finished)
+			Rational(^neg * ^num,^denom)
+		else
+			Rational(^neg * ^num,1);
+}

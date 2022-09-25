@@ -1,0 +1,66 @@
+import MTC/lab7/AST;
+
+export
+{
+    e2s(e : Expr) -> string;
+	e2sVariables(e : Expr, values : [Pair<string,string>]) -> string;
+    r2s(rational : Rational, neg : int) -> string;
+}
+
+e2s(e)
+{
+	e2sVariables(e,[]);
+}
+
+e2sVariables(e,values)
+{
+	e2sParentheses(e,false,1,values);
+}
+
+e2sParentheses(e : Expr, underMulDivOrNeg : bool, neg : int, values : [Pair<string,string>]) -> string
+{
+	switch (e : Expr)
+	{
+		Div(e1,e2) :
+			e2sParentheses(e1,true,neg,values) + " / " + e2sParentheses(e2,true,1,values);
+		Product(e1,e2) :
+			e2sParentheses(e1,true,neg,values) + " * " + e2sParentheses(e2,true,1,values);
+		Add(e1,e2) :
+			(if (underMulDivOrNeg) "(" else "") +
+                (if (-1 == neg) "-" + e2sParentheses(e1,true,1,values)
+                else e2sParentheses(e1,false,1,values)) +
+                (if (1 == neg) " + " + e2sParentheses(e2,false,1,values)
+                else " - " + e2sParentheses(e2,true,1,values)) +
+                (if (underMulDivOrNeg) ")" else "");
+		Sub(e1,e2) :
+			(if (underMulDivOrNeg) "(" else "") +
+                (if (-1 == neg) "-" + e2sParentheses(e1,true,1,values)
+                else e2sParentheses(e1,false,1,values)) +
+                (if (1 == neg) " - " + e2sParentheses(e2,false,1,values)
+                else " + " + e2sParentheses(e2,true,1,values)) +
+                (if (underMulDivOrNeg) ")" else "");
+		Neg(expr) :
+			e2sParentheses(expr,true,-1 * neg,values);
+		Var(s) :
+		{
+			r = var2r(s,values);
+			if (0 == r.denominator && 1 == r.numerator)
+				(if (1 == neg) "" else "-") + s
+			else
+				r2s(r,neg);
+		}
+		Rational(n,d) :
+			r2s(getRational(n,d),neg)
+	}
+}
+
+r2s(rational, neg)
+{
+	if (0 == rational.denominator)
+		"INVALID"
+	else
+		if (1 == rational.denominator)
+			i2s(neg * rational.numerator)
+		else
+			i2s(neg * rational.numerator) + "/" + i2s(rational.denominator);
+}

@@ -1,0 +1,54 @@
+import MTC/lab7/AST;
+
+export
+{
+    calc(e : Expr) -> Rational;
+	calcVariables(e : Expr, values : [Pair<string,string>]) -> Rational;
+}
+
+calc(e)
+{
+	calcVariables(e,[]);
+}
+
+calcVariables(e, values)
+{
+	switch(e : Expr)
+	{
+		Div(e1,e2) :
+		{
+			e1v = calcVariables(e1,values);
+			e2v = calcVariables(e2,values);
+			getRational(e1v.numerator * e2v.denominator, e2v.numerator * e1v.denominator);
+		}
+		Product(e1,e2) :
+		{
+			e1v = calcVariables(e1,values);
+			e2v = calcVariables(e2,values);
+			getRational(e1v.numerator * e2v.numerator, e1v.denominator * e2v.denominator);
+		}
+		Add(e1,e2) :
+		{
+			e1v = calcVariables(e1,values);
+			e2v = calcVariables(e2,values);
+			getRational(e1v.numerator * e2v.denominator + e2v.numerator * e1v.denominator,
+				e1v.denominator * e2v.denominator);
+		}
+		Sub(e1,e2) :
+		{
+			e1v = calcVariables(e1,values);
+			e2v = calcVariables(e2,values);
+			getRational(e1v.numerator * e2v.denominator - e2v.numerator * e1v.denominator,
+				e1v.denominator * e2v.denominator);
+		}
+		Neg(expr) :
+		{
+			ev = calcVariables(expr,values);
+			getRational(-ev.numerator,ev.denominator);
+		}
+		Var(s) :
+			var2r(s,values);
+		Rational(n,d) :
+			getRational(n,d)
+	}
+}
