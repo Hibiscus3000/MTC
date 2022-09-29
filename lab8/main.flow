@@ -1,0 +1,8 @@
+import MTC/lab8/lab8;
+
+main()
+{
+	test = "-f * (1 - f)/ (f * f - 2 * f)";
+	result = parsic(algebraGrammar(), test, specialPegActions);
+	println(e2s(result) + " = " + e2s(derivation(result,"f")));
+}

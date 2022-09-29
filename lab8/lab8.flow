@@ -1,0 +1,242 @@
+import MTC/lab7/algebra_grammar;
+
+export
+{
+    derivation(e : Expr, var : string) -> Expr;
+    simplifyConsts(e : Expr) -> Expr;
+}
+
+derivation(e,var)
+{
+    switch(e : Expr)
+    {
+        Div(e1,e2) : 
+        {
+            e1ContainsVar = containsVar(e1,var);
+            e2ContainsVar = containsVar(e2,var);
+            if (e1ContainsVar)
+            {
+                if (e2ContainsVar)
+                    Div(Sub(Product(e2,derivation(e1,var)),Product(e1,derivation(e2,var))),Product(e2,e2))
+                else
+                    Div(derivation(e1,var),e2);
+            }
+            else 
+            {
+                if (e2ContainsVar)
+                    Neg(Div(Product(e1,derivation(e2,var)),Product(e2,e2)))
+                else
+                    Rational(0,1);
+            }   
+        }
+        Product(e1,e2) :
+        {
+            e1ContainsVar = containsVar(e1,var);
+            e2ContainsVar = containsVar(e2,var);
+            if (e1ContainsVar)
+            {
+                if (e2ContainsVar)
+                    Add(Product(e1,derivation(e2,var)),Product(e2,derivation(e1,var)))
+                else
+                    Product(e2,derivation(e1,var));
+            }
+            else 
+            {
+                if (e2ContainsVar)
+                    Product(e1,derivation(e2,var))
+                else
+                    Rational(0,1);
+            }   
+        }
+        Sub(e1,e2) :
+        {
+            e1ContainsVar = containsVar(e1,var);
+            e2ContainsVar = containsVar(e2,var);
+            if (e1ContainsVar)
+            {
+                if (e2ContainsVar)
+                    Sub(derivation(e1,var),derivation(e2,var))
+                else
+                    derivation(e1,var);
+            }
+            else 
+            {
+                if (e2ContainsVar)
+                    Neg(derivation(e2,var))
+                else
+                    Rational(0,1);
+            }
+        }
+        Add(e1,e2) :
+        {
+            e1ContainsVar = containsVar(e1,var);
+            e2ContainsVar = containsVar(e2,var);
+            if (e1ContainsVar)
+            {
+                if (e2ContainsVar)
+                    Add(derivation(e1,var),derivation(e2,var))
+                else
+                    derivation(e1,var);
+            }
+            else 
+            {
+                if (e2ContainsVar)
+                    derivation(e2,var)
+                else
+                    Rational(0,1);
+            }
+        }
+        Neg(e1) :
+        {
+            if (containsVar(e1,var))
+                Neg(derivation(e1,var))
+            else
+                Rational(0,1);
+        }
+        Var(s) : Rational(1,1);
+        Rational(n,d) : Rational(0,1);
+    }
+}
+
+simplifyConsts(e)
+{
+    switch(e : Expr)
+    {
+        Div(e1,e2) : 
+        {
+            switch(e2)
+            {
+                Rational(n,d) :
+                    if (0 == d)
+                        e
+                    else
+                        if (d == n)
+                            e1
+                        else
+                            if (1 == n)
+                                Product(e1,Rational(d,1))
+                            else
+                                e; 
+                default :
+                    e;
+            }
+        }
+        Product(e1,e2) :
+        {
+            switch(e1)
+            {
+                Rational(n1,d1) :
+                    else
+                        if (n1 == d1 && 0 != d1)
+                            switch(e2)
+                            {
+                                Rational(n2,d2) :
+                                    if (0 == d2)
+                                        e2
+                                    else
+                                        if (n2 == d2)
+                                            Rational(1,1)
+                                        else
+                                            if (0 == n2)
+                                                Rational(0,0)
+                                            else
+                                                e2;
+                                default :
+                                    e2
+                            }
+                        else
+                            if (0 == n1 && 0 != d1)
+                                Rational(0,1)
+                            else
+                                switch(e2)
+                                {
+                                    Rational(n2,d2) :
+                                        if (0 == d2)
+                                            e
+                                        else
+                                            if (n2 == d2)
+                                                e1
+                                            else
+                                                if (0 == n2)
+                                                    Rational(0,0)
+                                                else
+                                                    e;
+                                    default :
+                                        e;
+                                }
+            }
+        }
+        Sub(e1,e2) :
+        {
+            switch(e1)
+            {
+                Rational(n1,d1) : 
+                    if (0 == n1 && 0 != d1)
+                        switch (e2)
+                        {
+                            Rational(n2,d2) :
+                                if (0 == n2 && 0 != d2)
+                                    Rational(0,1)
+                                else
+                                    Neg(e2);
+                            default :
+                                e2;
+                        }
+                    else
+                        switch (e2)
+                        {
+                            Rational(n2,d2) :
+                                if (0 == n2 && 0 != d)
+                                    e1
+                                else
+                                    e;
+                            default:
+                                e;
+                        }
+            }
+        }
+        Add(e1,e2) :
+        switch(e1)
+            {
+                Rational(n1,d1) : 
+                    if (0 == n1 && 0 != d1)
+                        switch (e2)
+                        {
+                            Rational(n2,d2) :
+                                if (0 == n2 && 0 != d2)
+                                    Rational(0,1)
+                                else
+                                    e2;
+                            default :
+                                e2;
+                        }
+                    else
+                        switch (e2)
+                        {
+                            Rational(n2,d2) :
+                                if (0 == n2 && 0 != d)
+                                    e1
+                                else
+                                    e;
+                            default:
+                                e;
+                        }
+            }
+        Var(s) : e;
+        Rational(n,d) : e;
+    }
+}
+
+containsVar(e : Expr, var : string) -> bool
+{
+    switch(e : Expr)
+    {
+        Div(e1,e2) : containsVar(e1,var) || containsVar(e2,var);
+        Product(e1,e2) : containsVar(e1,var) || containsVar(e2,var);
+        Sub(e1,e2) : containsVar(e1,var) || containsVar(e2,var);
+        Add(e1,e2) : containsVar(e1,var) || containsVar(e2,var);
+        Neg(e1) : containsVar(e1,var);
+        Var(s) : s == var;
+        Rational(n,d) : false;
+    }
+}
