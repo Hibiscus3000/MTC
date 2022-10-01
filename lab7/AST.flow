@@ -15,6 +15,11 @@ export
 	getRational(n : int, d : int) -> Rational;
 	var2r(s : string, values : [Pair<string,string>]) -> Rational;
 	s2r(str : string) -> Rational;
+	checkDenominator(e : Expr, val : int) -> bool;
+	checkNumerator(e : Expr, val : int) -> bool;
+	checkNumeratorEqualsDenominator(e : Expr) -> bool;
+	checkNumeratorEqualsMinusDenominator(e : Expr) -> bool;
+	flip(e : Expr) -> Expr;
 }
 
 buildSub(xs)
@@ -149,4 +154,49 @@ s2r(str)
 			Rational(^neg * ^num,^denom)
 		else
 			Rational(^neg * ^num,1);
+}
+
+checkDenominator(e, val)
+{
+	switch(e)
+	{
+        Rational(n,d) : val == d;
+		default : false;
+	}
+}
+
+checkNumerator(e, val)
+{
+    switch(e)
+    {
+        Rational(n,d) : val == n;
+        default : false;
+    }   
+}
+
+checkNumeratorEqualsDenominator(e)
+{
+    switch(e)
+    {
+        Rational(n,d) : d == n;
+        default : false;
+    }
+}
+
+checkNumeratorEqualsMinusDenominator(e)
+{
+    switch(e)
+    {
+        Rational(n,d) : -d == n;
+        default : false;
+    }
+}
+
+flip(e)
+{
+    switch(e)
+    {
+        Rational(n,d) : Rational(d,n);
+        default : e;
+    }
 }

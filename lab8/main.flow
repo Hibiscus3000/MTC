@@ -2,7 +2,8 @@ import MTC/lab8/lab8;
 
 main()
 {
-	test = "-f * (1 - f)/ (f * f - 2 * f)";
+	test = "-(f) * (f + f)";
 	result = parsic(algebraGrammar(), test, specialPegActions);
-	println(e2s(result) + " = " + e2s(derivation(result,"f")));
+	println(test + " = " + e2s(result) + " = " + e2s(derivation(result,"f")) + " = "
+		+ e2s(simplifyConsts(derivation(result,"f"))));
 }

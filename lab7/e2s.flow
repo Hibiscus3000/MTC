@@ -14,33 +14,37 @@ e2s(e)
 
 e2sVariables(e,values)
 {
-	e2sParentheses(e,false,1,values);
+	e2sParentheses(e,false, false,1,values);
 }
 
-e2sParentheses(e : Expr, underMulDivOrNeg : bool, neg : int, values : [Pair<string,string>]) -> string
+e2sParentheses(e : Expr, underDiv : bool, underMulDivOrNeg : bool,
+	neg : int, values : [Pair<string,string>]) -> string
 {
 	switch (e : Expr)
 	{
 		Div(e1,e2) :
-			e2sParentheses(e1,true,neg,values) + " / " + e2sParentheses(e2,true,1,values);
+			e2sParentheses(e1,true, true,neg,values) + " / " + e2sParentheses(e2,true, true,1,values);
 		Product(e1,e2) :
-			e2sParentheses(e1,true,neg,values) + " * " + e2sParentheses(e2,true,1,values);
+			(if (underDiv) "(" else "") + 
+			e2sParentheses(e1,false, true,neg,values) + " * " +
+			e2sParentheses(e2,false, true,1,values) +
+			(if (underDiv) ")" else "");
 		Add(e1,e2) :
 			(if (underMulDivOrNeg) "(" else "") +
-                (if (-1 == neg) "-" + e2sParentheses(e1,true,1,values)
-                else e2sParentheses(e1,false,1,values)) +
-                (if (1 == neg) " + " + e2sParentheses(e2,false,1,values)
-                else " - " + e2sParentheses(e2,true,1,values)) +
+                (if (-1 == neg) "-" + e2sParentheses(e1,false, true,1,values)
+                else e2sParentheses(e1,false, false,1,values)) +
+                (if (1 == neg) " + " + e2sParentheses(e2,false, false,1,values)
+                else " - " + e2sParentheses(e2,false, true,1,values)) +
                 (if (underMulDivOrNeg) ")" else "");
 		Sub(e1,e2) :
 			(if (underMulDivOrNeg) "(" else "") +
-                (if (-1 == neg) "-" + e2sParentheses(e1,true,1,values)
-                else e2sParentheses(e1,false,1,values)) +
-                (if (1 == neg) " - " + e2sParentheses(e2,false,1,values)
-                else " + " + e2sParentheses(e2,true,1,values)) +
+                (if (-1 == neg) "-" + e2sParentheses(e1,false, true,1,values)
+                else e2sParentheses(e1,false, false,1,values)) +
+                (if (1 == neg) " - " + e2sParentheses(e2,false, false,1,values)
+                else " + " + e2sParentheses(e2,false, true,1,values)) +
                 (if (underMulDivOrNeg) ")" else "");
 		Neg(expr) :
-			e2sParentheses(expr,true,-1 * neg,values);
+			e2sParentheses(expr,false, true,-1 * neg,values);
 		Var(s) :
 		{
 			r = var2r(s,values);
