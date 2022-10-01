@@ -273,8 +273,3 @@ containsAnyVar(e : Expr) -> bool
         Rational(n,d) : false;
     }
 }
-
-
-
-
-

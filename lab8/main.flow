@@ -3,7 +3,7 @@ import MTC/lab8/lab8;
 main()
 {
 	test = "-(f) * (f + f)";
-	result = parsic(algebraGrammar(), test, specialPegActions);
+	result = parsic(algebraGrammar(), test, subPegActions);
 	println(test + " = " + e2s(result) + " = " + e2s(derivation(result,"f")) + " = "
 		+ e2s(simplifyConsts(derivation(result,"f"))));
 }

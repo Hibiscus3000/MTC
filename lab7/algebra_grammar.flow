@@ -5,7 +5,7 @@ import string;
 export
 {
 	algebraGrammar()  -> [PegOp];
-	specialPegActions =
+	subPegActions =
 	{
 		t = setTree(defaultPegActions.t, "buildSub", buildSub);
 		SemanticActions(t);
