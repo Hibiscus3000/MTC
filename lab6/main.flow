@@ -14,5 +14,6 @@ main()
 
     test3 = "16876 2 + 4 + 3 4 5 + + + 3  3 * 3 3 3 * * + +";
 	println(test3 + " = " + RPN2s(test3) + " = " + i2s(calcRPN(test3)) + " =");
-    println("= " + s2RPN(RPN2s(test3)));
+    println("= " + s2RPN(RPN2s(test3)) + " = " +
+		i2s(calc(parsic(simpleAlgebraGrammar(),RPN2s(test3),defaultPegActions))));
 }

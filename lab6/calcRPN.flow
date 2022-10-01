@@ -1,18 +1,19 @@
-import string;
+import ds/arrayutils;
 import MTC/lab5/simple_algebra_grammar;
+import string;
+
 
 export
 {
     e2PN(e : Expr) -> string;
     e2RPN(e : Expr) -> string;
+    RPN2e(rpn : string) -> Expr;
     PN2s(pn : string) -> string;
     RPN2s(rpn : string) -> string;
     s2PN(str : string) -> string;
     s2RPN(str : string) -> string;
     calcRPN(rpn : string) -> int;
     calcPN(pn : string) -> int;
-    buildAdd(xs : [flow]) -> Add;
-    buildProduct(xs : [flow]) -> Product;
     PNAlgebraGrammar() -> [PegOp]; 
 }
 
@@ -46,6 +47,53 @@ e2RPN(e)
     }
 }
 
+RPN2e(rpn)
+{
+    RPN2eOpArg(rpn,[],"");
+}
+
+RPN2eOpArg(rpn,exprArr,number)
+{
+    curChar = getCharAt(rpn,0);
+    if (0 == strlen(rpn))
+        exprArr[0]
+    else
+    {
+        if (isDigit(getCharAt(rpn,0)))
+            RPN2eOpArg(substring(rpn,1,strlen(rpn) - 1),exprArr,strGlue([number,curChar],""))
+        else
+        {
+            newExprArr = if ("" == number) exprArr else arrayPush(exprArr,Int(s2i(number)));
+            if (" " == curChar)
+                RPN2eOpArg(substring(rpn,1,strlen(rpn) - 1),newExprArr,"")
+            else
+            {
+                newExprArrLength = length(newExprArr);
+                if (newExprArrLength < 2)
+                    Int(0)
+                else
+                {
+                    firstExp = newExprArr[newExprArrLength - 1];
+                    secondExp = newExprArr[newExprArrLength - 2];
+                    if ("*" == curChar) 
+                        RPN2eOpArg(substring(rpn,1,strlen(rpn) - 1),
+                            arrayPush(removeLastElement(
+                                removeLastElement(newExprArr)),Product(firstExp,secondExp)),"")
+                    else
+                    {
+                        if ("+" == curChar)
+                            RPN2eOpArg(substring(rpn,1,strlen(rpn) - 1),
+                                arrayPush(removeLastElement(
+                                    removeLastElement(newExprArr)),Add(firstExp,secondExp)),"")
+                        else
+                            Int(0);
+                    }
+                }
+            }
+        }
+    }
+}
+
 PN2s(pn)
 {
     e2s(parsic(PNAlgebraGrammar(), pn, defaultPegActions));
@@ -68,35 +116,11 @@ s2RPN(str)
 
 calcRPN(rpn)
 {
-    calc(RPN2e(rpn));   
+    calc(RPN2e(rpn));
 }
 
 calcPN(pn)
 {
     calc(parsic(PNAlgebraGrammar(),pn,defaultPegActions));
-}
-
-buildAdd(xs)
-{
-    fold(xs[1], xs[0], \acc, x -> Add(acc, x));
-}
-
-buildProduct(xs)
-{
-    fold(xs[1], xs[0], \acc, x -> Product(acc, x));
-}
-
-RPN2e(rpn)
-{
-    reverseNumbersInExpr(parsic(PNAlgebraGrammar(), reverse(rpn), defaultPegActions));
-}
-
-reverseNumbersInExpr(e : Expr)
-{
-    switch (e : Expr) {
-        Add(e1,e2) : Add(reverseNumbersInExpr(e1),reverseNumbersInExpr(e2));
-        Product(e1,e2) : Product(reverseNumbersInExpr(e1),reverseNumbersInExpr(e2));
-        Int(i) : Int(s2i(reverse(i2s(i))));
-    }
 }
 
