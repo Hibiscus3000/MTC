@@ -7,7 +7,7 @@ proddiv = neg:n '*' proddiv:p {Product(:n,:p)} |
      neg:n {:n};
 sub = proddiv:p subsub*:s {buildSub(:p,:s)}; 
 subsub = sp* '-' proddiv:p {:p};
-neg = sp* '-' parentheses:a {Neg(:a)} | parentheses:a {:a};
+neg = sp* '-' neg:n {Neg(:n)} | parentheses:a {:a};
 parentheses = sp* '(' sp* expr:e sp* ')' sp* {:e} | arg:a {:a};
 arg = int:i {:i} | var:v {:v};
 int = sp* digit+$d sp* {Rational(s2i($d),1)};

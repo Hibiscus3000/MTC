@@ -108,15 +108,21 @@ simplifyConstsNeg(e : Expr,neg : int)
     switch(e : Expr)
     {
         Div(e1,e2) : 
+        {
+            e1ContainsAnyVar = containsAnyVar(e1);
+            e2ContainsAnyVar = containsAnyVar(e2);
+            e1Simplified = if (!e1ContainsAnyVar) (if (1 == neg) calc(e1) else calc(Neg(e1)))
+                else simplifyConstsNeg(e1,neg);
+            e2Simplified = if (!e2ContainsAnyVar) calc(e2) else simplifyConstsNeg(e2,1);
+            if (checkDenominator(e1Simplified, 0) || checkDenominator(e2Simplified, 0) ||
+                checkNumerator(e2Simplified, 0))
+                Rational(0,0)
+            else
             {
-                e1ContainsAnyVar = containsAnyVar(e1);
-                e2ContainsAnyVar = containsAnyVar(e2);
-                e1Simplified = if (!e1ContainsAnyVar) calc(e1) else simplifyConstsNeg(e1, neg);
-                e2Simplified = if (!e2ContainsAnyVar) calc(e2) else simplifyConstsNeg(e2, neg);
-                if (checkDenominator(e1Simplified, 0) || checkDenominator(e2Simplified, 0) ||
-                    checkNumerator(e2Simplified, 0))
-                    Rational(0,0)
+                if (checkNumerator(e1Simplified,0))
+                    Rational(0,1)
                 else
+                {
                     if (!e2ContainsAnyVar)
                     {
                         if (!e1ContainsAnyVar)
@@ -135,28 +141,29 @@ simplifyConstsNeg(e : Expr,neg : int)
                         }
                     }
                     else
-                        if (!e1ContainsAnyVar && checkNumerator(e1Simplified,0))
-                                Rational(0,1)
-                            else
-                                Div(e1Simplified,e2Simplified);
+                        Div(e1Simplified,e2Simplified);
+                }
             }
+        }
         Product(e1,e2) :
         {
             e1ContainsAnyVar = containsAnyVar(e1);
             e2ContainsAnyVar = containsAnyVar(e2);
-            e1Simplified = if (!e1ContainsAnyVar) calc(e1) else simplifyConstsNeg(e1,neg);
-            e2Simplified = if (!e2ContainsAnyVar) calc(e2) else simplifyConstsNeg(e2,neg);
+            e1Simplified = if (!e1ContainsAnyVar) (if (1 == neg) calc(e1) else calc(Neg(e1)))
+                else simplifyConstsNeg(e1,neg);
+            e2Simplified = if (!e2ContainsAnyVar) calc(e2) else simplifyConstsNeg(e2,1);
             if (checkDenominator(e1Simplified,0) || checkDenominator(e2Simplified,0))
                 Rational(0,0)
             else
-                if (!e2ContainsAnyVar)
+            {
+                if (checkNumerator(e1Simplified,0) || checkNumerator(e2Simplified,0))
+                    Rational(0,1)
+                else
                 {
-                    if (!e1ContainsAnyVar)
-                        calc(Product(e1Simplified,e2Simplified))
-                    else
+                    if (!e2ContainsAnyVar)
                     {
-                        if (checkNumerator(e2Simplified,0))
-                            Rational(0,1)
+                        if (!e1ContainsAnyVar)
+                            calc(Product(e1Simplified,e2Simplified))
                         else
                         {
                             if (checkNumeratorEqualsDenominator(e2Simplified))
@@ -170,75 +177,68 @@ simplifyConstsNeg(e : Expr,neg : int)
                             }
                         }
                     }
-                }
-                else
-                    if (!e1ContainsAnyVar)
+                    else
                     {
-                        if (checkNumerator(e1Simplified,0))
-                            Rational(0,1)
-                        else
+                        if (!e1ContainsAnyVar)
                         {
                             if (checkNumeratorEqualsDenominator(e1Simplified))
                                 e2Simplified
                             else
+                            {
                                 if (checkNumeratorEqualsMinusDenominator(e1Simplified))
                                     simplifyConstsNeg(e2Simplified,-1*neg)
                                 else
                                     Product(e1Simplified, e2Simplified);
+                            }
                         }
+                        else
+                            Product(e1Simplified,e2Simplified);
                     }
-                    else
-                        Product(e1Simplified,e2Simplified);
+                }
+            }
         }
         Sub(e1,e2) :
         {
             e1ContainsAnyVar = containsAnyVar(e1);
             e2ContainsAnyVar = containsAnyVar(e2);
-            e1Simplified = if (!e1ContainsAnyVar) calc(e1) else simplifyConstsNeg(e1,neg);
-            e2Simplified = if (!e2ContainsAnyVar) calc(e2) else simplifyConstsNeg(e2,-1*neg);
-            if (checkDenominator(e1Simplified,0) || checkDenominator(e2Simplified,0))
-                Rational(0,0)
-            else
-                if (!e2ContainsAnyVar)
-                {
-                    if (!e1ContainsAnyVar)
-                        calc(Sub(e1Simplified,e2Simplified))
-                    else
-                        if (checkNumerator(e2Simplified,0))
-                            e1Simplified
-                        else
-                            Add(e2Simplified,e1Simplified);
-                }
-                else
-                    if (!e1ContainsAnyVar && checkNumerator(e1Simplified,0))
-                        e2Simplified
-                    else
-                        Add(e1Simplified,e2Simplified);
+            e1Simplified = if (!e1ContainsAnyVar) (if (1 == neg) calc(e1) else calc(Neg(e1)))
+                else simplifyConstsNeg(e1,neg);
+            e2Simplified = if (!e2ContainsAnyVar) (if (-1 == neg) calc(e2) else calc(Neg(e2)))
+                else simplifyConstsNeg(e2,neg * -1);
+            simplifyConstsNeg(Add(e1Simplified,e2Simplified),1);
         }
         Add(e1,e2) :
         {
             e1ContainsAnyVar = containsAnyVar(e1);
             e2ContainsAnyVar = containsAnyVar(e2);
-            e1Simplified = if (!e1ContainsAnyVar) calc(e1) else simplifyConstsNeg(e1,neg);
-            e2Simplified = if (!e2ContainsAnyVar) calc(e2) else simplifyConstsNeg(e2,neg);
+            e1Simplified = if (!e1ContainsAnyVar) (if (1 == neg) calc(e1) else calc(Neg(e1)))
+                else simplifyConstsNeg(e1,neg);
+            e2Simplified = if (!e2ContainsAnyVar) (if (1 == neg) calc(e2) else calc(Neg(e2)))
+                else simplifyConstsNeg(e2,neg);
             if (checkDenominator(e1Simplified,0) || checkDenominator(e2Simplified,0))
                 Rational(0,0)
             else
-                if (!e2ContainsAnyVar)
-                {
-                    if (!e1ContainsAnyVar)
+            {
+                if (!e2ContainsAnyVar && !e1ContainsAnyVar)
                         calc(Add(e1Simplified,e2Simplified))
-                    else
-                        if (checkNumerator(e2Simplified,0))
-                            e1Simplified
-                        else
-                            Add(e2Simplified,e1Simplified);
-                }
                 else
-                    if (!e1ContainsAnyVar && checkNumerator(e1Simplified,0))
-                        e2Simplified
+                {
+                    if (checkNumerator(e2Simplified,0))
+                    {
+                        if (checkNumerator(e1Simplified,0))
+                            Rational(0,1)
+                        else
+                            e1Simplified
+                    }
                     else
-                        Add(e1Simplified,e2Simplified);
+                    {
+                        if (checkNumerator(e1Simplified,0))
+                            e2Simplified
+                        else
+                            Add(e1Simplified,e2Simplified);
+                    }
+                }
+            }
         }
         Neg(e1) : simplifyConstsNeg(e1,-1*neg);
         Var(s) : if (-1 == neg) Neg(e) else e;
