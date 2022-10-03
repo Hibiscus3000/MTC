@@ -1,0 +1,130 @@
+import MTC/lab8/lab8;
+
+export
+{
+    // expr must be first simplified using simplifyConsts() from lab8
+    // toRational always returns a Div, even if denominator equals to one, so it is better to
+    // use simplifyConsts() after toRational() also
+    toRational(e : Expr) -> Div;
+}
+
+toRational(e)
+{
+    eSimplified = simplifyConsts(e);
+    topLevelTerms = getTopLevelTerms(eSimplified,[]);
+    noLayeringTerms = fold(topLevelTerms,[], \acc,term -> arrayPush(acc,getRidOfLayering(term)));
+    //Div(Var("x"),Var("y"));
+}
+
+getTopLevelTerms(e,terms)
+{
+    switch (e : Expr)
+    {
+        Add(e1,e2) : concat(toRationalTopLevel(e1,terms), toRationalTopLevel(e2,[]));
+        default : concat(terms,[e]);
+    }
+}
+
+getRidOfLayering(e) -> Div
+{
+    switch (e : Expr)
+    {
+        Div(e1,e2) :
+        {
+            num = getRidOfLayering(e1);
+            den = getRidOfLayering(e2);
+            Div(Product(num.e1,den.e2), Product(num.e2,den.e1));
+        }
+        Product(e1,e2) :
+        {
+            mul1 = getRidOfLayering(e1);
+            mul2 = getRidOfLayering(e2);
+            Div(Product(mul1.e1,mul2.e1),Product(mul.e2,mul2.e2));
+        }
+        Add(e1,e2) :
+        {
+            toOneFraction([getRidOfLayring(e1),getRidOfLayering(e2)]);
+        }
+        Neg(e1) :
+        {
+            e1WithoutLayring = getRidOfLayering(e1);
+            Div(Neg(e1WithoutLayring.e1),e1WithoutLayring.e2);
+        }
+        default : e;
+    }
+}
+
+toOneFraction(fractions : [Div]) -> Div
+{
+    denominators = fold(fractions,[], \acc,fraction -> arrayPush(acc,fraction.e2));
+    numerators = fold(fractions,[], \acc,fraction -> arrayPush(acc,fraction.e1));
+    commonFactors = fold(denominators,[], \acc,denominator -> concat(acc,getCommonFactorsOfTerms))
+}
+
+getCommonFactorsOfTerms(expr : e) -> [Expr]
+{
+    switch (e : Expr)
+    {
+        Product(e1,e2) : concat(getFactors(e1),getFactors(e2));
+        Add(e1,e2) : getCommonFactorsInterseption(getFactors(e1),getFactors(e2));
+        default: [e];
+    }
+}
+
+getCommonFactorsIntersection(e1Factors : [Epxr], e2Factors : [Expr])
+{
+    
+}
+
+getFactors(expr : e) -> [Expr]
+{
+    switch (e : Expr)
+    {
+        Product(e1,e2) : concat(getFactors(e1),getFactors(e2));  
+        Add(e1,e2) :
+        {
+            commonFactors = getCommonFactorsOfTerms([e1,e2]);
+            fold(commonFactors,e,\acc,commonFactor ->
+                commonFactorOutOfBrackets(acc,commonFactor));
+        }
+        Sub(e1,e2) :
+        {
+            commonFactors = getCommonFactorsOfTerms([e1,e2]);
+            fold(commonFactors,e,\acc,commonFactor ->
+                commonFactorOutOfBrackets(acc,commonFactor));
+        }
+        Neg(e1) : arrayPush(getFactors(e1),Rational(-1,1));
+        default : [e];
+    }
+}
+
+commonFactorOutOfBrackets(e : Expr, commonFactor : Epxr)
+{
+    switch(e : Expr)
+    {
+        Product(e1,e2) :
+        {
+            e1CommonFactorOutOfBrackets = commonFactorOutOfBrackets(e1,commonFactor);
+            if (e1 == e1CommonFactorOutOfBrackets)
+                commonFactorOutOfBrackets(e2,commonFactor)
+            else
+                e1CommonFactorOutOfBrackets;
+        }
+        Add(e1,e2) : 
+        {
+            if (e == commonFactor)
+                Rational(1,1)
+            else
+                Add(commonFactorOutOfBrackets(e1),commonFactorOutOfBrackets(e2));
+
+        }
+        Sub(e1,e2) :
+        {
+            if (e == commonFactor)
+                Rational(1,1)
+            else
+                Sub(commonFactorOutOfBrackets(e1),commonFactorOutOfBrackets(e2));
+        }
+        default : e;
+    }
+}
