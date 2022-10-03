@@ -1,7 +1,6 @@
-expr = prod:p '+' expr:e {Add(:p,:e)} | prod:p {:p};
-prod = parentheses:par '*' prod:prod {Product(:par,:prod)} | parentheses:p {:p};
-parentheses = sp* '(' sp* expr:e sp* ')' sp* {:e} | int:i {:i};
-sum = int:i1 '+' int:i2 {Add(:i1,:i2)} | int:i {:i};
+expr = prod:p '+' expr:e {Add(:p,:e)} | prod;
+prod = parentheses:par '*' prod:prod {Product(:par,:prod)} | parentheses;
+parentheses = sp* '(' sp* expr:e sp* ')' sp* {:e} | int;
 int = sp* digit+$d sp* {Int(s2i($d))};
 digit = '0'-'9';
 sp = ' ';

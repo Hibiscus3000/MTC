@@ -4,7 +4,7 @@ main()
 {
 	test = "-2 * 5 - (2   - f) * Z + x -1";
 	result = parsic(algebraGrammar(), test, subPegActions);
-	defArr = [("x = 4 / 4"), ("y = - 1   /   1"),("Z = 12")];
+	defArr = [("x = 4 / 4"), ("y = - 1   /   1"),("Z = 12"),("f = 15/7")];
 	println(test + " = " + e2sVariables(result,defArr)
 		+ " = " + r2s(calcVariables(result,defArr),1));
 	println(calcVariables(result,defArr));

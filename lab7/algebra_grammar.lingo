@@ -1,17 +1,15 @@
 expr = proddiv:p '+' expr:e {Add(:p,:e)} |
-     sub:s '+' expr:e {Add(:s,:e)} |
-     sub:s {:s} |
-     proddiv:p {:p};
+     sub:s '+' expr:e {Add(:s,:e)} | sub | proddiv;
 proddiv = neg:n '*' proddiv:p {Product(:n,:p)} |
      neg:n '/' proddiv:p {Div(:n,:p)} |
-     neg:n {:n};
+     neg;
 sub = proddiv:p subsub*:s {buildSub(:p,:s)}; 
 subsub = sp* '-' proddiv:p {:p};
-neg = sp* '-' neg:n {Neg(:n)} | parentheses:a {:a};
-parentheses = sp* '(' sp* expr:e sp* ')' sp* {:e} | arg:a {:a};
-arg = int:i {:i} | var:v {:v};
+neg = sp* '-' neg:n {Neg(:n)} | parentheses;
+parentheses = sp* '(' sp* expr:e sp* ')' sp* {:e} | arg;
+arg = int | var;
 int = sp* digit+$d sp* {Rational(s2i($d),1)};
 var = sp* (letter (letter | digit)*)$str sp* {Var($str)};
-letter = 'a' - 'z' | 'A' - 'Z';
+letter = 'a' - 'z' | 'A' - 'Z' | '_';
 digit = '0'-'9';
 sp = ' ';
