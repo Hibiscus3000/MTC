@@ -1,4 +1,4 @@
-import MTC/lab6/calcRPN;
+import MTC/lab6/calc_RPN;
 
 main()
 {
@@ -13,6 +13,7 @@ main()
 	println("= " + i2s(calcPN(test2)));
 
     test3 = "16876 2 + 4 + 3 4 5 + + + 3  3 * 3 3 3 * * + +";
+	println(RPN2e(test3));
 	println(test3 + " = " + RPN2s(test3) + " = " + i2s(calcRPN(test3)) + " =");
     println("= " + s2RPN(RPN2s(test3)) + " = " +
 		i2s(calc(parsic(simpleAlgebraGrammar(),RPN2s(test3),defaultPegActions))));

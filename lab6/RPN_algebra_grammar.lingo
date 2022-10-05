@@ -1,0 +1,7 @@
+exp = subexpr*;
+subexpr = (int | asterisk | plus);
+int = sp* digit+$d sp* {Int(s2i($d))};
+digit = '0'-'9';
+asterisk = sp* '*'$a sp* {RPNOperation($a)};
+plus = sp* '+'$p sp* {RPNOperation($p)};
+sp = ' ';

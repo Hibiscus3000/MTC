@@ -2,12 +2,13 @@ import ds/arrayutils;
 import MTC/lab5/simple_algebra_grammar;
 import string;
 
-
 export
 {
+    RPNOperand ::= RPNOperation,Int;
+    RPNOperation(op : string);
     e2PN(e : Expr) -> string;
     e2RPN(e : Expr) -> string;
-    RPN2e(rpn : string) -> Expr;
+    RPN2e(rpn : string) -> Maybe<Expr>;
     PN2s(pn : string) -> string;
     RPN2s(rpn : string) -> string;
     s2PN(str : string) -> string;
@@ -24,6 +25,13 @@ PNAlgebraGrammar()
 {
 	onlyOnce(PNAlgebraGrammarOp, \ -> {
 		compilePegGrammar("#include MTC/lab6/PN_algebra_grammar.lingo");
+	});
+}
+
+RPNAlgebraGrammar()
+{
+    onlyOnce(RPNAlgebraGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab6/RPN_algebra_grammar.lingo");
 	});
 }
 
@@ -49,16 +57,66 @@ e2RPN(e)
 
 RPN2e(rpn)
 {
+    stack = parsic(RPNAlgebraGrammar(),rpn,defaultPegActions);
+    exprs = processStack(stack,ref []);
+    if (1 != length(exprs))
+        None()
+    else
+        Some(exprs[0]);
+}
+
+processStack(stack,exprStack) -> [Expr]
+{
+    if (0 == length(stack))
+        ^exprStack
+    else
+    {
+        operand = stack[0];
+        switch (operand : RPNOperand)
+        {
+            Int(i) :
+            {
+                refArrayPush(exprStack,operand);
+                processStack(removeIndex(stack,0),exprStack);
+            }
+            RPNOperation(op) :
+            {
+                eitherMap(maybeMap2(\op1,op2 -> (if ("*" == op) Product(op1,op2)
+                    else Add(op1,op2))) (exprStackPop(exprStack),exprStackPop(exprStack)),
+                    \expr : Expr ->
+                        {
+                            refArrayPush(exprStack,expr);
+                            processStack(removeIndex(stack,0),exprStack);
+                        },[]);
+            }
+        }
+    }
+}
+
+exprStackPop(exprStack) -> Maybe<Expr>
+{
+    if (0 == length(^exprStack))
+        None()
+    else
+    {
+        popedOperand = ^exprStack[length(^exprStack) - 1];
+        exprStack := removeLastElement(^exprStack);
+        Some(popedOperand);
+    }
+}
+
+RPN2e2(rpn)
+{
     RPN2eOpArg(rpn,[],"");
 }
 
 RPN2eOpArg(rpn,exprArr,number)
 {
-    curChar = getCharAt(rpn,0);
     if (0 == strlen(rpn))
         exprArr[0]
     else
     {
+        curChar = getCharAt(rpn,0);
         if (isDigit(getCharAt(rpn,0)))
             RPN2eOpArg(substring(rpn,1,strlen(rpn) - 1),exprArr,strGlue([number,curChar],""))
         else
@@ -101,7 +159,7 @@ PN2s(pn)
 
 RPN2s(rpn)
 {
-    e2s(RPN2e(rpn));
+    eitherMap(RPN2e(rpn),e2s,"INVALID");
 }
 
 s2PN(str)
@@ -116,7 +174,7 @@ s2RPN(str)
 
 calcRPN(rpn)
 {
-    calc(RPN2e(rpn));
+    eitherMap(RPN2e(rpn),calc,0);
 }
 
 calcPN(pn)
