@@ -1,121 +1,175 @@
+import ds/tree;
 import MTC/lab8/lab8;
 
 export
 {
-    // expr must be first simplified using simplifyConsts() from lab8
-    // toRational always returns a Div, even if denominator equals to one, so it is better to
-    // use simplifyConsts() after toRational() also
-    toRational(e : Expr) -> Div;
+    e2r(e : Expr, var : string) -> Expr;
+    toPolynomialTreesPair(e : Expr, var : string) -> Pair<Tree,Tree>;
+    polynomialTree2Expr(polynomialTree : Tree,var : string) -> Expr;
+    polynomialTreesPair2Expr(polynomialTreesPair : Pair<Tree,Tree>, var : string) -> Expr;
+    polynomialTree2String(polynomialTree : Tree,var : string) -> string;
+    polynomialTrees2String(polynomialTreesPair : Pair<Tree,Tree>,var : string) -> string;
+    e2rs(e : Expr,var : string) -> string;
 }
 
-toRational(e)
+e2r(e,var)
 {
-    eSimplified = simplifyConsts(e);
-    topLevelTerms = getTopLevelTerms(eSimplified,[]);
-    noLayeringTerms = fold(topLevelTerms,[], \acc,term -> arrayPush(acc,getRidOfLayering(term)));
-    //Div(Var("x"),Var("y"));
+    polynomialTreesPair2Expr(toPolynomialTreesPair(e,var),var);
 }
 
-getTopLevelTerms(e,terms)
+toPolynomialTreesPair(e,var)
 {
-    switch (e : Expr)
-    {
-        Add(e1,e2) : concat(toRationalTopLevel(e1,terms), toRationalTopLevel(e2,[]));
-        default : concat(terms,[e]);
-    }
+    fraction = toOneFraction(e);
+    commonFactors = getCommonFactorsIntersection(getCommonFactorsOfTerms(fraction.e1),
+        getCommonFactorsOfTerms(fraction.e2));
+    reducedFraction = fold(commonFactors,fraction,\acc,commonFactor ->
+        Div(divByACommonFactor(acc.e1,commonFactor),divByACommonFactor(acc.e2, commonFactor)));
+    //println("reduced fraction: " + e2s(simplifyConsts(reducedFraction)));
+    semiPolynomialNumerator = toSemiPolynomial(simplifyConsts(reducedFraction.e1),1);
+    //println("semiPolynomialNumerator: " + e2s(semiPolynomialNumerator));
+    semiPolynomialDenominator = toSemiPolynomial(simplifyConsts(reducedFraction.e2),1);
+    //println("semiPolynomialDenominator: " + e2s(semiPolynomialDenominator));
+    Pair(buildPolynomialTree(makeTree(),simplifyConsts(semiPolynomialNumerator),var,1),
+        buildPolynomialTree(makeTree(),simplifyConsts(semiPolynomialDenominator),var,1));
 }
 
-getRidOfLayering(e) -> Div
+polynomialTree2Expr(polynomialTree, var)
+{
+    termsArr = getTermsArr([],polynomialTree,var);
+    firstTerm = termsArr[0];
+    fold(removeIndex(termsArr,0),firstTerm, \acc,term -> Add(acc,term));
+}
+
+polynomialTreesPair2Expr(polynomialTreesPair,var)
+{
+    simplifyConsts(Div(polynomialTree2Expr(polynomialTreesPair.first,var),
+        polynomialTree2Expr(polynomialTreesPair.second,var)));
+}
+
+polynomialTree2String(polynomialTree,var)
+{
+    polynomialTree2StringPlus(polynomialTree,var,false);
+}
+
+polynomialTrees2String(polynomialTreesPair,var)
+{
+    "(" + polynomialTree2StringPlus(polynomialTreesPair.first,var,false) + ") / (" +
+    polynomialTree2StringPlus(polynomialTreesPair.second,var,false) + ")";
+}
+
+e2rs(e,var)
+{
+    polynomialTrees2String(toPolynomialTreesPair(e,var),var);
+}
+
+toOneFraction(e) -> Div
 {
     switch (e : Expr)
     {
         Div(e1,e2) :
         {
-            num = getRidOfLayering(e1);
-            den = getRidOfLayering(e2);
+            num = toOneFraction(e1);
+            den = toOneFraction(e2);
             Div(Product(num.e1,den.e2), Product(num.e2,den.e1));
         }
         Product(e1,e2) :
         {
-            mul1 = getRidOfLayering(e1);
-            mul2 = getRidOfLayering(e2);
-            Div(Product(mul1.e1,mul2.e1),Product(mul.e2,mul2.e2));
+            mul1 = toOneFraction(e1);
+            mul2 = toOneFraction(e2);
+            Div(Product(mul1.e1,mul2.e1),Product(mul1.e2,mul2.e2));
+        }
+        Sub(e1,e2) :
+        {
+            term1 = toOneFraction(e1);
+            term2 = toOneFraction(e2);
+            Div(Sub(Product(term1.e1,term2.e2),Product(term2.e1,term1.e2)),Product(term1.e2,term2.e2));           
         }
         Add(e1,e2) :
         {
-            toOneFraction([getRidOfLayring(e1),getRidOfLayering(e2)]);
+            term1 = toOneFraction(e1);
+            term2 = toOneFraction(e2);
+            Div(Add(Product(term1.e1,term2.e2),Product(term2.e1,term1.e2)),Product(term1.e2,term2.e2));
         }
         Neg(e1) :
         {
-            e1WithoutLayring = getRidOfLayering(e1);
-            Div(Neg(e1WithoutLayring.e1),e1WithoutLayring.e2);
+            neg = toOneFraction(e1);
+            Div(Neg(neg.e1),neg.e2);
         }
-        default : e;
+        Var(s) : Div(e,Rational(1,1));
+        Rational(n,d) : Div(e,Rational(1,1));
     }
 }
 
-toOneFraction(fractions : [Div]) -> Div
+getCommonFactorsOfTerms(expr : Expr) -> [Expr]
 {
-    denominators = fold(fractions,[], \acc,fraction -> arrayPush(acc,fraction.e2));
-    numerators = fold(fractions,[], \acc,fraction -> arrayPush(acc,fraction.e1));
-    commonFactors = fold(denominators,[], \acc,denominator -> concat(acc,getCommonFactorsOfTerms))
-}
-
-getCommonFactorsOfTerms(expr : e) -> [Expr]
-{
-    switch (e : Expr)
+    switch (expr : Expr)
     {
         Product(e1,e2) : concat(getFactors(e1),getFactors(e2));
-        Add(e1,e2) : getCommonFactorsInterseption(getFactors(e1),getFactors(e2));
-        default: [e];
+        Add(e1,e2) : getCommonFactorsIntersection(getFactors(e1),getFactors(e2));
+        Sub(e1,e2) : getCommonFactorsIntersection(getFactors(e1),getFactors(e2));
+        Neg(e1) : getCommonFactorsOfTerms(e1);
+        default: [expr];
     }
 }
 
-getCommonFactorsIntersection(e1Factors : [Epxr], e2Factors : [Expr])
+getCommonFactorsIntersection(e1Factors : [Expr], e2Factors : [Expr])
 {
-    
+    e1FactorsRef = ref e1Factors;
+    fold(e2Factors,[],\acc,e2Factor ->
+    {
+        commonFactorPositionInE1Factors = foldi(^e1FactorsRef,-1, \i,pos,e1Factor ->
+            if (e1Factor == e2Factor) i else pos);
+        if (-1 != commonFactorPositionInE1Factors)
+        {
+            newAcc = arrayPush(acc,^e1FactorsRef[commonFactorPositionInE1Factors]);
+            e1FactorsRef := removeIndex(^e1FactorsRef,commonFactorPositionInE1Factors);
+            newAcc;
+        }
+        else
+            acc;
+    })
 }
 
-getFactors(expr : e) -> [Expr]
+getFactors(expr : Expr) -> [Expr]
 {
-    switch (e : Expr)
+    switch (expr : Expr)
     {
         Product(e1,e2) : concat(getFactors(e1),getFactors(e2));  
         Add(e1,e2) :
         {
-            commonFactors = getCommonFactorsOfTerms([e1,e2]);
-            fold(commonFactors,e,\acc,commonFactor ->
-                commonFactorOutOfBrackets(acc,commonFactor));
+            commonFactors = getCommonFactorsOfTerms(expr);
+            arrayPush(commonFactors, fold(commonFactors,expr,\acc,commonFactor ->
+                divByACommonFactor(acc,commonFactor)));
         }
         Sub(e1,e2) :
         {
-            commonFactors = getCommonFactorsOfTerms([e1,e2]);
-            fold(commonFactors,e,\acc,commonFactor ->
-                commonFactorOutOfBrackets(acc,commonFactor));
+            commonFactors = getCommonFactorsOfTerms(expr);
+            arrayPush(commonFactors, fold(commonFactors,expr,\acc,commonFactor ->
+                divByACommonFactor(acc,commonFactor)));
         }
         Neg(e1) : arrayPush(getFactors(e1),Rational(-1,1));
-        default : [e];
+        default : [expr];
     }
 }
 
-commonFactorOutOfBrackets(e : Expr, commonFactor : Epxr)
+divByACommonFactor(e : Expr, commonFactor : Expr)
 {
     switch(e : Expr)
     {
         Product(e1,e2) :
         {
-            e1CommonFactorOutOfBrackets = commonFactorOutOfBrackets(e1,commonFactor);
+            e1CommonFactorOutOfBrackets = divByACommonFactor(e1,commonFactor);
             if (e1 == e1CommonFactorOutOfBrackets)
-                commonFactorOutOfBrackets(e2,commonFactor)
+                Product(e1,divByACommonFactor(e2,commonFactor))
             else
-                e1CommonFactorOutOfBrackets;
+                Product(e1CommonFactorOutOfBrackets,e2);
         }
         Add(e1,e2) : 
         {
             if (e == commonFactor)
                 Rational(1,1)
             else
-                Add(commonFactorOutOfBrackets(e1),commonFactorOutOfBrackets(e2));
+                Add(divByACommonFactor(e1,commonFactor),divByACommonFactor(e2,commonFactor));
 
         }
         Sub(e1,e2) :
@@ -123,8 +177,126 @@ commonFactorOutOfBrackets(e : Expr, commonFactor : Epxr)
             if (e == commonFactor)
                 Rational(1,1)
             else
-                Sub(commonFactorOutOfBrackets(e1),commonFactorOutOfBrackets(e2));
+                Add(divByACommonFactor(e1,commonFactor),Neg(divByACommonFactor(e2,commonFactor)));
+        }
+        Neg(e1) :
+        {
+            if (e1 == commonFactor)
+                Rational(-1,1)
+            else
+                Neg(divByACommonFactor(e1,commonFactor));
         }
         default : e;
+    }
+}
+
+toSemiPolynomial(expr :  Expr, neg)
+{
+    switch (expr : Expr)
+    {
+        Product(e1,e2) :
+        {
+            switch (e1 : Expr)
+            {
+                Add(e11,e12) :
+                    switch (e2 : Expr)
+                    {
+                        Add(e21,e22) : Add(Add(toSemiPolynomial(Product(e11,e21),neg),
+                            toSemiPolynomial(Product(e11,e22),neg)),
+                            Add(toSemiPolynomial(Product(e12,e21),neg),
+                                toSemiPolynomial(Product(e12,e22),neg)));
+                        default : Add(toSemiPolynomial(Product(toSemiPolynomial(e2,1),e11),neg),
+                            toSemiPolynomial(Product(toSemiPolynomial(e2,1),e12),neg));
+                    }
+                default :
+                    switch (e2 : Expr)
+                    {
+                        Add(e21,e22) : Add(toSemiPolynomial(Product(toSemiPolynomial(e1,1),e21),neg),
+                            toSemiPolynomial(Product(toSemiPolynomial(e1,1),e22),neg));
+                        default : Product(toSemiPolynomial(e1,neg),toSemiPolynomial(e2,1));
+                    }
+            }
+        }
+        Add(e1,e2) : Add(toSemiPolynomial(e1,neg),toSemiPolynomial(e2,neg));
+        Neg(e1) : toSemiPolynomial(e1,-1*neg);
+        Var(s) : if (-1 == neg) Neg(expr) else expr;
+        Rational(n,d) : Rational(neg * n,d);        
+        default : expr;
+    }
+}
+
+buildPolynomialTree(tree,semiPolynomial, var, neg)
+{
+    switch(semiPolynomial : Expr)
+    {
+        Product(e1,e2) : setTree2(tree,getCoefficientAndExponent(semiPolynomial,var,neg));
+        Add(e1,e2) : buildPolynomialTree(buildPolynomialTree(tree,e1,var,neg),e2,var,neg);
+        Neg(e1) : buildPolynomialTree(tree,e1,var,-1*neg);
+        Var(s) : setTree2(tree,getCoefficientAndExponent(semiPolynomial,var,neg)) 
+        Rational(n,d) : setTree2(tree,getCoefficientAndExponent(semiPolynomial,var,neg));
+        default : makeTree();
+    }
+}
+
+setTree2(tree, cAE : Pair<Expr,int>)
+{
+    prevCoefficient = lookupTree(tree,cAE.second);
+    eitherFn(prevCoefficient,\pc -> setTree(tree,cAE.second, simplifyConsts(Add(pc,cAE.first))),
+        \ -> setTree(tree,cAE.second, cAE.first));
+}
+
+getCoefficientAndExponent(expr, var, neg) -> Pair<Expr,int>
+{
+    switch (expr : Expr)
+    {
+        Product(e1,e2) :
+        {
+            cAE1 = getCoefficientAndExponent(e1,var,neg);
+            cAE2 = getCoefficientAndExponent(e2,var,neg);
+            Pair(simplifyConsts(Product(cAE1.first,cAE2.first)),cAE1.second + cAE2.second);
+        }
+        Neg(e1) : getCoefficientAndExponent(e1,var,-1*neg);
+        Rational(n,d) : Pair(Rational(neg*n,d),0);
+        Var(s) :  if (s == var) Pair(Rational(neg,1),1) else
+            Pair((if (-1 == neg) Neg(expr) else expr),0);
+        default : Pair(Rational(0,0),1);
+    }
+}
+
+getTermsArr(termsArr, polynomialTree, var)
+{
+    maxExponent = popmax(polynomialTree);
+    switch (maxExponent : TreePopResult)
+    {
+        PopResult(k,v,rest) : getTermsArr(arrayPush(termsArr,buildTerm(k,v,var)),rest,var);
+        EmptyPopResult() : termsArr;
+    }
+}
+
+buildTerm(exponent,coefficient,var)
+{
+    if (0 == exponent)
+        coefficient
+    else
+        Product(coefficient,buildTermNoCoefficient(exponent,var))
+}
+
+buildTermNoCoefficient(exponent,var)
+{
+    if (1 == exponent)
+        Var(var)
+    else
+        Product(Var(var),buildTermNoCoefficient(exponent - 1,var));
+}
+
+polynomialTree2StringPlus(polynomialTree,var,writePlus)
+{
+    maxExponent = popmax(polynomialTree);
+    switch (maxExponent : TreePopResult)
+    {
+        PopResult(k,v,rest) : (if (writePlus) " + " else "") + 
+            e2s(v) + (if (k > 0) " * " + var + (if (k > 1) "^" + i2s(k) else "") else "") +
+            polynomialTree2StringPlus(rest,var,true);
+        EmptyPopResult() : "";
     }
 }

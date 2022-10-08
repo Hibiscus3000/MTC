@@ -101,12 +101,17 @@ derivation(e,var)
 
 simplifyConsts(e)
 {
+    simplifyConstsNeg(e,1);
+}
+
+simplifyConstsNeg(e,neg)
+{
     switch(e : Expr)
     {
         Div(e1,e2) : 
         {
-            e1Simplified = simplifyConsts(e1);
-            e2Simplified = simplifyConsts(e2);
+            e1Simplified = simplifyConstsNeg(e1,neg);
+            e2Simplified = simplifyConstsNeg(e2,1);
             if (checkDenominator(e1Simplified,0) || checkDenominator(e2Simplified,0)
                 || checkNumerator(e2Simplified,0))
                 Rational(0,0)
@@ -140,8 +145,8 @@ simplifyConsts(e)
         }
         Product(e1,e2) :
         {
-            e1Simplified = simplifyConsts(e1);
-            e2Simplified = simplifyConsts(e2);
+            e1Simplified = simplifyConstsNeg(e1,neg);
+            e2Simplified = simplifyConstsNeg(e2,1);
             if (checkDenominator(e1Simplified,0) || checkDenominator(e2Simplified,0))
                 Rational(0,0)
             else
@@ -174,37 +179,12 @@ simplifyConsts(e)
         }
         Sub(e1,e2) :
         {
-            e1Simplified = simplifyConsts(e1);
-            e2Simplified = simplifyConsts(e2);
-            if (checkDenominator(e1Simplified,0) || checkDenominator(e2Simplified,0))
-                Rational(0,0)
-            else
-            {
-                if (isRational(e1Simplified) && isRational(e2Simplified))
-                        calc(Sub(e1Simplified,e2Simplified))
-                else
-                {
-                    if (checkNumerator(e2Simplified,0))
-                    {
-                        if (checkNumerator(e1Simplified,0))
-                            Rational(0,1)
-                        else
-                            e1Simplified
-                    }
-                    else
-                    {
-                        if (checkNumerator(e1Simplified,0))
-                            Neg(e2Simplified)
-                        else
-                            Sub(e1Simplified,e2Simplified);
-                    }
-                }
-            }
+            simplifyConstsNeg(Add(e1,Neg(e2)),neg);
         }
         Add(e1,e2) :
         {
-            e1Simplified = simplifyConsts(e1);
-            e2Simplified = simplifyConsts(e2);
+            e1Simplified = simplifyConstsNeg(e1,neg);
+            e2Simplified = simplifyConstsNeg(e2,neg);
             if (checkDenominator(e1Simplified,0) || checkDenominator(e2Simplified,0))
                 Rational(0,0)
             else
@@ -232,19 +212,19 @@ simplifyConsts(e)
         }
         Neg(e1) :
         {
-            e1Simplified = simplifyConsts(e1);
+            e1Simplified = simplifyConstsNeg(e1,-1*neg);
             if (checkDenominator(e1Simplified,0))
                 Rational(0,0)
             else
             {
                 if (isRational(e1Simplified))
-                    calc(Neg(e1Simplified))
+                    calc(e1Simplified)
                 else
-                    Neg(e1Simplified);
+                    e1Simplified;
             }
         }
-        Var(s) : e;
-        Rational(n,d) : getRational(n,d);
+        Var(s) : if (1 == neg) e else Neg(e);
+        Rational(n,d) : if (1 == neg) getRational(n,d) else getRational(-n,d);
     }
 }
 

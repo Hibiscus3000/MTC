@@ -1,10 +1,11 @@
-import MTC/lab7/AST;
+import MTC/lab9/lab9;
 
 main()
 {
-	/*test = "-(f * 1) * --(f * f * 1 - 1 * (1 + 0 * f + 0 * 1))";
-	result = parsic(algebraGrammar(), test, subPegActions);
-	println(test + " = " + e2s(result) + " = " + e2s(simplifyConsts(result)));
-	println("(" + test + ")` = (" + e2s(result) + ")` = " + e2s(derivation(result,"f")) + " = "
-		+ e2s(simplifyConsts(derivation(result,"f"))));*/
+	test1 = "(x + 2) * (x + 2) * (x + 2) * (x + 2) * (x + 2) / ((x + 2) * (x + 2) * (x + 2))";
+	println("test: " + test1);
+	result1 = parsic(algebraGrammar(),test1,subDivPegActions);
+	println("e2r test: " + e2s(e2r(result1,"x")));
+	println("e2rs test: " + e2rs(result1,"x"));
+	quit(0);
 }
