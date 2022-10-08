@@ -17,4 +17,5 @@ main()
 	println(test3 + " = " + RPN2s(test3) + " = " + i2s(calcRPN(test3)) + " =");
     println("= " + s2RPN(RPN2s(test3)) + " = " +
 		i2s(calc(parsic(simpleAlgebraGrammar(),RPN2s(test3),defaultPegActions))));
+	quit(0);
 }

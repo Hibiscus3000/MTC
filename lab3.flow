@@ -66,4 +66,5 @@ main()
     println3("fibc(1) = ",^(fibc(ref [0],1,0,1))); 
     println3("fibc(2) = ",^(fibc(ref [0],2,0,1))); 
     println3("fibc(30) = ",^(fibc(ref [0],30,0,1))); 
+    quit(0);
 }

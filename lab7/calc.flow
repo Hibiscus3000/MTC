@@ -4,6 +4,7 @@ export
 {
     calc(e : Expr) -> Rational;
 	calcVariables(e : Expr, defs : [string]) -> Rational;
+	calcVariablesDefsAsPairs(e : Expr, defPairs : [Pair<Var,Expr>]) -> Rational;
 }
 
 calc(e)
@@ -52,7 +53,7 @@ calcVariablesDefsAsPairs(e, defPairs)
 			getRational(-ev.numerator,ev.denominator);
 		}
 		Var(s) :
-			var2r(s,defPairs);
+			calcVariablesDefsAsPairs(var2e(s,defPairs),defPairs);
 		Rational(n,d) :
 			getRational(n,d)
 	}

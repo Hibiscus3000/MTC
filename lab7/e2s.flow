@@ -1,10 +1,10 @@
-import MTC/lab7/AST;
+import MTC/lab7/calc;
 
 export
 {
     e2s(e : Expr) -> string;
 	e2sVariables(e : Expr, defs : [string]) -> string;
-    r2s(rational : Rational, neg : int) -> string;
+    r2s(rational : Rational) -> string;
 }
 
 e2s(e)
@@ -14,57 +14,69 @@ e2s(e)
 
 e2sVariables(e,defs)
 {
-	e2sParentheses(e,false, false,1, s2varDefPairs(defs));
+	e2sParentheses(e,0, s2varDefPairs(defs));
 }
 
-e2sParentheses(e : Expr, underDiv : bool, underMulDivOrNeg : bool,
-	neg : int, defs : [Pair<Var,Rational>]) -> string
+// OPERATION PRIORITIES
+// 1 for Add and Sub
+// 2 for subtrahend, Product, Div and Neg
+// 2 for divider
+// 4 for Var and Rational
+
+e2sParentheses(e, underOperationPriority, defs : [Pair<Var,Expr>]) -> string
 {
-	switch (e : Expr)
+	operationPriority = ref 0;
+	result = switch (e : Expr)
 	{
 		Div(e1,e2) :
-			e2sParentheses(e1,true, true,neg,defs) + " / " + e2sParentheses(e2,true, true,1,defs);
+		{
+			operationPriority := 2;
+			e2sParentheses(e1,2,defs) + " / " + e2sParentheses(e2,3,defs);
+		}
 		Product(e1,e2) :
-			(if (underDiv) "(" else "") + 
-			e2sParentheses(e1,false, true,neg,defs) + " * " +
-			e2sParentheses(e2,false, true,1,defs) +
-			(if (underDiv) ")" else "");
+		{
+			operationPriority := 2;
+			e2sParentheses(e1,2,defs) + " * " + e2sParentheses(e2,2,defs);
+		}
 		Add(e1,e2) :
-			(if (underMulDivOrNeg) "(" else "") +
-                (if (-1 == neg) "-" + e2sParentheses(e1,false, true,1,defs)
-                else e2sParentheses(e1,false, false,1,defs)) +
-                (if (1 == neg) " + " + e2sParentheses(e2,false, false,1,defs)
-                else " - " + e2sParentheses(e2,false, true,1,defs)) +
-                (if (underMulDivOrNeg) ")" else "");
+		{
+			operationPriority := 1;
+            e2sParentheses(e1,1,defs) + " + " + e2sParentheses(e2,1,defs);
+		}
 		Sub(e1,e2) :
-			(if (underMulDivOrNeg) "(" else "") +
-                (if (-1 == neg) "-" + e2sParentheses(e1,false, true,1,defs)
-                else e2sParentheses(e1,false, false,1,defs)) +
-                (if (1 == neg) " - " + e2sParentheses(e2,false, false,1,defs)
-                else " + " + e2sParentheses(e2,false, true,1,defs)) +
-                (if (underMulDivOrNeg) ")" else "");
+		{
+			operationPriority := 1;
+            e2sParentheses(e1,1,defs) + " - " + e2sParentheses(e2,2,defs);
+		}
 		Neg(expr) :
-			e2sParentheses(expr,false, true,-1 * neg,defs);
+		{
+			operationPriority := 3;
+			"-" + e2sParentheses(expr,2,defs);
+		}
 		Var(s) :
 		{
-			r = var2r(s,defs);
-			if (0 == r.denominator && 1 == r.numerator)
-				(if (1 == neg) "" else "-") + s
-			else
-				r2s(getRational(r.numerator,r.denominator),neg);
+			operationPriority := 4;
+			e2sParentheses(var2e(s,defs),underOperationPriority,defs);
 		}
-		Rational(n,d) :
-			r2s(getRational(n,d),neg)
+		Rational(n,d) : 
+		{
+			operationPriority := 4;
+			r2s(e);
+		}
 	}
+	if (^operationPriority < underOperationPriority)
+		"(" + result + ")"
+	else
+		result;
 }
 
-r2s(rational, neg)
+r2s(rational)
 {
 	if (0 == rational.denominator)
 		"INVALID"
 	else
 		if (1 == rational.denominator)
-			i2s(neg * rational.numerator)
+			i2s(rational.numerator)
 		else
-			i2s(neg * rational.numerator) + "/" + i2s(rational.denominator);
+			i2s(rational.numerator) + "/" + i2s(rational.denominator);
 }

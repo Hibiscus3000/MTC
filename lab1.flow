@@ -6,4 +6,5 @@ main()
     strArr = map(intArr,i2s);
     println(strArr);
     println(strGlue(strArr," "));
+    quit(0);
 }

@@ -10,10 +10,18 @@ export
 		Neg : (e : Expr);
 		Var : (s : string);
 		Rational : (numerator : int, denominator : int);
+	algebraGrammar()  -> [PegOp];
 	buildSub(xs : [flow]) -> Sub;
+	buildDiv(xs : [flow]) -> Div;
+	subDivPegActions =
+	{
+		tSub = setTree(defaultPegActions.t, "buildSub", buildSub);
+		tDiv = setTree(tSub,"buildDiv",buildDiv);
+		SemanticActions(tDiv);
+	}
 	getRational(n : int, d : int) -> Rational;
-	s2varDefPairs(strs : [string]) -> [Pair<Var,Rational>];
-	var2r(var : string, defPairs : [Pair<Var,Rational>]) -> Rational;
+	s2varDefPairs(strs : [string]) -> [Pair<Var,Expr>];
+	var2e(var : string, defPairs : [Pair<Var,Expr>]) -> Expr;
 	checkDenominator(e : Expr, val : int) -> bool;
 	checkNumerator(e : Expr, val : int) -> bool;
 	checkNumeratorEqualsDenominator(e : Expr) -> bool;
@@ -21,17 +29,14 @@ export
 	flip(e : Expr) -> Expr;
 }
 
+algebraGrammarOp : ref Maybe<[PegOp]> = ref None();
 varDefGrammarOp : ref Maybe<[PegOp]> = ref None();
 
-minPegActions =
+algebraGrammar()
 {
-		t = setTree(defaultPegActions.t, "minus", minus);
-		SemanticActions(t);
-}
-
-minus(xs) -> int
-{
-	-xs[0];
+	onlyOnce(algebraGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab7/algebra_grammar.lingo");
+	});
 }
 
 varDefGrammar()  -> [PegOp]
@@ -44,6 +49,11 @@ varDefGrammar()  -> [PegOp]
 buildSub(xs)
 {
 	fold(xs[1], xs[0], \acc, x -> Sub(acc, x));
+}
+
+buildDiv(xs)
+{
+	fold(xs[1],xs[0], \acc,x -> Div(acc,x));
 }
 
 getRational(n, d)
@@ -88,10 +98,10 @@ LCM(a : int, b : int)
 
 s2varDefPairs(strs)
 {
-	fold(strs,[], \acc, str -> arrayPush(acc,parsic(varDefGrammar(),str,minPegActions)));
+	fold(strs,[], \acc, str -> arrayPush(acc,parsic(varDefGrammar(),str,subDivPegActions)));
 }
 
-var2r(var, defPairs)
+var2e(var, defPairs)
 {
 	fold(defPairs,Rational(1,0),\acc, defPair ->
 		if (defPair.first.s == var) defPair.second else acc);

@@ -1,10 +1,9 @@
-expr = proddiv:p '+' expr:e {Add(:p,:e)} |
-     sub:s '+' expr:e {Add(:s,:e)} | sub | proddiv;
-proddiv = neg:n '*' proddiv:p {Product(:n,:p)} |
-     neg:n '/' proddiv:p {Div(:n,:p)} |
-     neg;
-sub = proddiv:p subsub*:s {buildSub(:p,:s)}; 
-subsub = sp* '-' proddiv:p {:p};
+expr = sub:s '+' expr:e {Add(:s,:e)} | sub;
+sub = prod:p subsub*:s {buildSub(:p,:s)}; 
+subsub = sp* '-' prod:p {:p};
+prod = div:d '*' prod:p {Product(:d,:p)} | div;
+div = neg:n subdiv*:d {buildDiv(:n,:d)};
+subdiv = sp* '/' neg:n {:n};
 neg = sp* '-' neg:n {Neg(:n)} | parentheses;
 parentheses = sp* '(' sp* expr:e sp* ')' sp* {:e} | arg;
 arg = int | var;
