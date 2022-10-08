@@ -56,7 +56,11 @@ e2sParentheses(e, underOperationPriority, defs : [Pair<Var,Expr>]) -> string
 		Var(s) :
 		{
 			operationPriority := 4;
-			e2sParentheses(var2e(s,defs),underOperationPriority,defs);
+			varDef = var2e(s,defs);
+			if (varDef == Rational(1,0))
+				s
+			else
+				e2sParentheses(varDef,underOperationPriority,defs);
 		}
 		Rational(n,d) : 
 		{

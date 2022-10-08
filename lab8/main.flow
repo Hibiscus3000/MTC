@@ -2,10 +2,17 @@ import MTC/lab8/lab8;
 
 main()
 {
-	test = "-(f * 1) * --(f * f * 1 - 1 * (1 + 0 * f + 0 * 1))";
-	result = parsic(algebraGrammar(), test, subPegActions);
-	println(test + " = " + e2s(result) + " = " + e2s(simplifyConsts(result)));
-	println("(" + test + ")` = (" + e2s(result) + ")` = " + e2s(derivation(result,"f")) + " = "
-		+ e2s(simplifyConsts(derivation(result,"f"))));
+	test1 = "f / 9 * 3 / 3 / (3 /     (3 + 4 * (1 - (4 * (--(4 / -16))))))";
+	println("test :" + test1);
+	result1 = parsic(algebraGrammar(),test1,subDivPegActions);
+	println("calc test: " + e2s(calc(result1)));
+	println("simplify test: " + e2s(simplifyConsts(result1)));
+	println("\n");
+	test2 = "f / f";
+	result2 = parsic(algebraGrammar(), test2, subDivPegActions);
+	println("test: " + test2);
+	println("simplify test: " + e2s(simplifyConsts(result2)));
+	println("derivation test: " + e2s(derivation(result2,"f")));
+	println("simplify derivation test: " + e2s(simplifyConsts(derivation(result2,"f"))));
 	quit(0);
 }
