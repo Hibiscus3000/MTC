@@ -20,15 +20,13 @@ e2r(e,var)
 toPolynomialTreesPair(e,var)
 {
     fraction = toOneFraction(e);
-    commonFactors = removeOnes(getCommonFactorsIntersection(getCommonFactorsOfTerms(fraction.e1),
+    commonFactors = removeOnes(getCommonFactorsIntersection(
+        getCommonFactorsOfTerms(fraction.e1),
         getCommonFactorsOfTerms(fraction.e2)));
     reducedFraction = fold(commonFactors,fraction,\acc,commonFactor ->
         Div(divByACommonFactor(acc.e1,commonFactor),divByACommonFactor(acc.e2, commonFactor)));
-    //println("reduced fraction: " + e2s(simplifyConsts(reducedFraction)));
     semiPolynomialNumerator = toSemiPolynomial(simplifyConsts(reducedFraction.e1),1);
-    //println("semiPolynomialNumerator: " + e2s(semiPolynomialNumerator));
     semiPolynomialDenominator = toSemiPolynomial(simplifyConsts(reducedFraction.e2),1);
-    //println("semiPolynomialDenominator: " + e2s(semiPolynomialDenominator));
     Pair(buildPolynomialTree(makeTree(),simplifyConsts(semiPolynomialNumerator),var,1),
         buildPolynomialTree(makeTree(),simplifyConsts(semiPolynomialDenominator),var,1));
 }
@@ -70,7 +68,7 @@ toOneFraction(e) -> Div
         {
             num = toOneFraction(e1);
             den = toOneFraction(e2);
-            Div(Product(num.e1,den.e2), Product(num.e2,den.e1));
+            Div(Product(num.e1,den.e2),Product(num.e2,den.e1));
         }
         Product(e1,e2) :
         {
@@ -82,13 +80,17 @@ toOneFraction(e) -> Div
         {
             term1 = toOneFraction(e1);
             term2 = toOneFraction(e2);
-            Div(Sub(Product(term1.e1,term2.e2),Product(term2.e1,term1.e2)),Product(term1.e2,term2.e2));           
+            Div(Sub(Product(term1.e1,term2.e2),
+                    Product(term2.e1,term1.e2)),
+                Product(term1.e2,term2.e2));
         }
         Add(e1,e2) :
         {
             term1 = toOneFraction(e1);
             term2 = toOneFraction(e2);
-            Div(Add(Product(term1.e1,term2.e2),Product(term2.e1,term1.e2)),Product(term1.e2,term2.e2));
+            Div(Add(Product(term1.e1,term2.e2),
+                    Product(term2.e1,term1.e2)),
+                Product(term1.e2,term2.e2));
         }
         Neg(e1) :
         {
@@ -178,14 +180,28 @@ divByACommonFactor(e : Expr, commonFactor : Expr)
             if (e == commonFactor)
                 Rational(1,1)
             else
-                Add(divByACommonFactor(e1,commonFactor),divByACommonFactor(e2,commonFactor));
+            {
+                e1div = divByACommonFactor(e1,commonFactor);
+                e2div = divByACommonFactor(e2,commonFactor);
+                if (e1div != e1 && e2div != e2)
+                    Add(e1div,e2div)
+                else
+                    e;
+            }
         }
         Sub(e1,e2) :
         {
             if (e == commonFactor)
                 Rational(1,1)
             else
-                Add(divByACommonFactor(e1,commonFactor),Neg(divByACommonFactor(e2,commonFactor)));
+            {
+                e1div = divByACommonFactor(e1,commonFactor);
+                e2div = divByACommonFactor(e2,commonFactor);
+                if (e1div != e1 && e2div != e2)
+                    Sub(e1div,e2div)
+                else
+                    e;
+            }
         }
         Neg(e1) :
         {
@@ -206,24 +222,26 @@ toSemiPolynomial(expr :  Expr, neg)
     {
         Product(e1,e2) :
         {
-            switch (e1 : Expr)
+            e1p = toSemiPolynomial(e1,neg);
+            e2p = toSemiPolynomial(e2,1);
+            switch (e1p : Expr)
             {
                 Add(e11,e12) :
-                    switch (e2 : Expr)
+                    switch (e2p : Expr)
                     {
                         Add(e21,e22) : Add(Add(toSemiPolynomial(Product(e11,e21),neg),
                             toSemiPolynomial(Product(e11,e22),neg)),
                             Add(toSemiPolynomial(Product(e12,e21),neg),
                                 toSemiPolynomial(Product(e12,e22),neg)));
-                        default : Add(toSemiPolynomial(Product(toSemiPolynomial(e2,1),e11),neg),
-                            toSemiPolynomial(Product(toSemiPolynomial(e2,1),e12),neg));
+                        default : Add(toSemiPolynomial(Product(toSemiPolynomial(e2p,1),e11),neg),
+                            toSemiPolynomial(Product(toSemiPolynomial(e2p,1),e12),neg));
                     }
                 default :
-                    switch (e2 : Expr)
+                    switch (e2p : Expr)
                     {
-                        Add(e21,e22) : Add(toSemiPolynomial(Product(toSemiPolynomial(e1,1),e21),neg),
-                            toSemiPolynomial(Product(toSemiPolynomial(e1,1),e22),neg));
-                        default : Product(toSemiPolynomial(e1,neg),toSemiPolynomial(e2,1));
+                        Add(e21,e22) : Add(toSemiPolynomial(Product(toSemiPolynomial(e1p,1),e21),neg),
+                            toSemiPolynomial(Product(toSemiPolynomial(e1p,1),e22),neg));
+                        default : Product(toSemiPolynomial(e1p,neg),toSemiPolynomial(e2p,1));
                     }
             }
         }
