@@ -6,7 +6,7 @@ main()
 	//test = "3 / 9 * 3 / a / (3 /     (3 + 4 * (5 - (4 * (--(4 / -16))))))";
 	result = parsic(algebraGrammar(), test, subDivPegActions);
 	println(result);
-	defArr = [("x = 16 / 24"), ("y = x + 3"),("z = y /-2")];
+	defArr = [("a = 16 / 24"), ("y = a + 3"),("z = y /-2")];
 	println(test + " = " + e2sVariables(result,defArr)
 		+ " = " + r2s(calcVariables(result,defArr)));
 	println(calcVariables(result,defArr));

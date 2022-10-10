@@ -1,10 +1,10 @@
 vardef = var:v '=' expr:e {Pair(:v,:e)};
 expr = sub:s '+' expr:e {Add(:s,:e)} | sub;
-sub = proddiv:p subsub*:s {buildSub(:p,:s)}; 
-subsub = sp* '-' proddiv:p {:p};
-proddiv = neg:n '*' proddiv:p {Product(:n,:p)} |
-     neg:n '/' proddiv:p {Div(:n,:p)} |
-     neg;
+sub = prod:p subsub*:s {buildSub(:p,:s)}; 
+subsub = sp* '-' prod:p {:p};
+prod = div:d '*' prod:p {Product(:d,:p)} | div;
+div = neg:n subdiv*:d {buildDiv(:n,:d)};
+subdiv = sp* '/' neg:n {:n};
 neg = sp* '-' neg:n {Neg(:n)} | parentheses;
 parentheses = sp* '(' sp* expr:e sp* ')' sp* {:e} | arg;
 arg = int | var;

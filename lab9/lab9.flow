@@ -20,8 +20,8 @@ e2r(e,var)
 toPolynomialTreesPair(e,var)
 {
     fraction = toOneFraction(e);
-    commonFactors = getCommonFactorsIntersection(getCommonFactorsOfTerms(fraction.e1),
-        getCommonFactorsOfTerms(fraction.e2));
+    commonFactors = removeOnes(getCommonFactorsIntersection(getCommonFactorsOfTerms(fraction.e1),
+        getCommonFactorsOfTerms(fraction.e2)));
     reducedFraction = fold(commonFactors,fraction,\acc,commonFactor ->
         Div(divByACommonFactor(acc.e1,commonFactor),divByACommonFactor(acc.e2, commonFactor)));
     //println("reduced fraction: " + e2s(simplifyConsts(reducedFraction)));
@@ -48,13 +48,13 @@ polynomialTreesPair2Expr(polynomialTreesPair,var)
 
 polynomialTree2String(polynomialTree,var)
 {
-    polynomialTree2StringPlus(polynomialTree,var,false);
+    polynomialTree2StringFirstTerm(polynomialTree,var,false);
 }
 
 polynomialTrees2String(polynomialTreesPair,var)
 {
-    "(" + polynomialTree2StringPlus(polynomialTreesPair.first,var,false) + ") / (" +
-    polynomialTree2StringPlus(polynomialTreesPair.second,var,false) + ")";
+    "(" + polynomialTree2StringFirstTerm(polynomialTreesPair.first,var,true) + ") / (" +
+    polynomialTree2StringFirstTerm(polynomialTreesPair.second,var,true) + ")";
 }
 
 e2rs(e,var)
@@ -130,6 +130,15 @@ getCommonFactorsIntersection(e1Factors : [Expr], e2Factors : [Expr])
     })
 }
 
+removeOnes(factors : [Expr])
+{
+    fold(factors,factors,\acc,factor ->
+        if (checkNumeratorEqualsDenominator(factor))
+            removeFirst(acc,factor)
+        else
+            acc);
+}
+
 getFactors(expr : Expr) -> [Expr]
 {
     switch (expr : Expr)
@@ -147,7 +156,7 @@ getFactors(expr : Expr) -> [Expr]
             arrayPush(commonFactors, fold(commonFactors,expr,\acc,commonFactor ->
                 divByACommonFactor(acc,commonFactor)));
         }
-        Neg(e1) : arrayPush(getFactors(e1),Rational(-1,1));
+        Neg(e1) : getFactors(e1);
         default : [expr];
     }
 }
@@ -170,7 +179,6 @@ divByACommonFactor(e : Expr, commonFactor : Expr)
                 Rational(1,1)
             else
                 Add(divByACommonFactor(e1,commonFactor),divByACommonFactor(e2,commonFactor));
-
         }
         Sub(e1,e2) :
         {
@@ -186,6 +194,8 @@ divByACommonFactor(e : Expr, commonFactor : Expr)
             else
                 Neg(divByACommonFactor(e1,commonFactor));
         }
+        Rational(n,d) : if (e == commonFactor) Rational(1,1) else e;
+        Var(s) : if (e == commonFactor) Rational(1,1) else e;
         default : e;
     }
 }
@@ -289,14 +299,42 @@ buildTermNoCoefficient(exponent,var)
         Product(Var(var),buildTermNoCoefficient(exponent - 1,var));
 }
 
-polynomialTree2StringPlus(polynomialTree,var,writePlus)
+polynomialTree2StringFirstTerm(polynomialTree,var,firstTerm)
 {
     maxExponent = popmax(polynomialTree);
     switch (maxExponent : TreePopResult)
     {
-        PopResult(k,v,rest) : (if (writePlus) " + " else "") + 
-            e2s(v) + (if (k > 0) " * " + var + (if (k > 1) "^" + i2s(k) else "") else "") +
-            polynomialTree2StringPlus(rest,var,true);
+        PopResult(k,v,rest) : 
+        {
+            (if (!checkNumerator(v,0))
+            {
+                numeratorLessThenZero = checkNumeratorLessThenZero(v);
+                c = if (numeratorLessThenZero) simplifyConsts(Neg(v)) else v;
+                (if (numeratorLessThenZero)
+                        " - "
+                else 
+                {
+                    if (!firstTerm)
+                        " + "
+                    else
+                        "";
+                })
+                +
+                (if ((checkNumeratorEqualsDenominator(c)) && (k > 0))
+                    ""
+                else
+                    e2s(c))
+                + (if (!checkNumeratorEqualsDenominator(c) && (k > 0)) " * " else "") +
+                (if (k > 0)
+                    var + (if (k > 1) "^" + i2s(k) else "")
+                else
+                    "")
+            }
+            else
+                "")
+            +
+                polynomialTree2StringFirstTerm(rest,var,false);
+        }
         EmptyPopResult() : "";
     }
 }

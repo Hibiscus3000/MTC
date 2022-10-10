@@ -8,8 +8,9 @@ main()
 	println("calc test: " + e2s(calc(result1)));
 	println("simplify test: " + e2s(simplifyConsts(result1)));
 	println("\n");
-	test2 = "f / f";
+	test2 = "f / f / f";
 	result2 = parsic(algebraGrammar(), test2, subDivPegActions);
+	println("calc test: " + e2s(calcVariables(result2,["f = 3"])));
 	println("test: " + test2);
 	println("simplify test: " + e2s(simplifyConsts(result2)));
 	println("derivation test: " + e2s(derivation(result2,"f")));

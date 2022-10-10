@@ -136,7 +136,12 @@ simplifyConstsNeg(e,neg)
                         if (checkNumeratorEqualsDenominator(e2Simplified))
                             e1Simplified
                         else
-                            Product(flip(e2Simplified),e1Simplified);
+                        {
+                            if (checkNumeratorEqualsMinusDenominator(e2Simplified))
+                                simplifyConstsNeg(e1Simplified,-1)
+                            else
+                                Product(flip(e2Simplified),e1Simplified);
+                        }
                     }
                     else
                         Div(e1Simplified,e2Simplified);
@@ -172,7 +177,7 @@ simplifyConstsNeg(e,neg)
                         if (isRational(e2Simplified) && checkNumeratorEqualsDenominator(e2Simplified))
                             e1Simplified
                         else
-                            Product(e2Simplified, e1Simplified);
+                            Product(e1Simplified, e2Simplified);
                     }
                 }
             }
@@ -224,7 +229,7 @@ simplifyConstsNeg(e,neg)
             }
         }
         Var(s) : if (1 == neg) e else Neg(e);
-        Rational(n,d) : if (1 == neg) getRational(n,d) else getRational(-n,d);
+        Rational(n,d) : getRational(neg * n,d);
     }
 }
 

@@ -26,6 +26,7 @@ export
 	checkNumerator(e : Expr, val : int) -> bool;
 	checkNumeratorEqualsDenominator(e : Expr) -> bool;
 	checkNumeratorEqualsMinusDenominator(e : Expr) -> bool;
+	checkNumeratorLessThenZero(e : Expr) -> bool;
 	flip(e : Expr) -> Expr;
 }
 
@@ -141,6 +142,15 @@ checkNumeratorEqualsMinusDenominator(e)
         Rational(n,d) : -d == n;
         default : false;
     }
+}
+
+checkNumeratorLessThenZero(e)
+{
+	switch(e)
+	{
+		Rational(n,d) : n < 0;
+		default : false;
+	}
 }
 
 flip(e)
