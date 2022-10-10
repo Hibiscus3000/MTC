@@ -2,18 +2,18 @@ import MTC/lab8/lab8;
 
 main()
 {
-	test1 = "f + f + (-f + -f)";
+	/*test1 = "f + f + (-f + -f)";
 	println("test :" + test1);
 	result1 = parsic(algebraGrammar(),test1,subDivPegActions);
 	println("calc test: " + e2s(calc(result1)));
 	println("simplify test: " + e2s(simplifyConsts(result1)));
-	println("\n");
-	test2 = "f / f / f";
+	println("\n");*/
+	test2 = "x + (1 + (x + (1 + (x + 1))))";
 	result2 = parsic(algebraGrammar(), test2, subDivPegActions);
-	println("calc test: " + e2s(calcVariables(result2,["f = 3"])));
+	//println("calc test: " + e2s(calcVariables(result2,["f = 3"])));
 	println("test: " + test2);
 	println("simplify test: " + e2s(simplifyConsts(result2)));
-	println("derivation test: " + e2s(derivation(result2,"f")));
-	println("simplify derivation test: " + e2s(simplifyConsts(derivation(result2,"f"))));
+	println("derivation test: " + e2s(derivation(result2,"x")));
+	println("simplify derivation test: " + e2s(simplifyConsts(derivation(result2,"x"))));
 	quit(0);
 }

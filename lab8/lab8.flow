@@ -40,7 +40,7 @@ derivation(e,var)
                 else
                     Product(e1der, e2);
             }
-            else 
+            else
             {
                 if (e2der != Rational(0,1))
                     Product(e2der, e1)
@@ -94,7 +94,7 @@ derivation(e,var)
             else
                 Rational(0,1);
         }
-        Var(s) : Rational(1,1);
+        Var(s) : if (s == var) Rational(1,1) else Rational(0,1);
         Rational(n,d) : Rational(0,1);
     }
 }
