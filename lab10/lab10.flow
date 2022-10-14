@@ -1,0 +1,50 @@
+import MTC/lab10/compare_exchange;
+
+export
+{
+    identities = ["-a * b = -(a * b)"
+                ,"a + b = b + a"
+                ,"a * b = b * a"
+                ,"a * b + a * c = a * (b + c)"
+                ,"-a + b = b - a"
+                ,"a + -b = a - b"
+                ,"x*x - y*y = (x - y) * (x + y)"
+                ,"a*a + 2*a*b + b*b = (a + b)*(a + b)"
+                ,"a*a - 2*a*b + b*b = (a - b)*(a - b)"
+                ];
+    simplify(expr : Expr, identities : [string]) -> Expr;
+}
+
+identityGrammarOp : ref Maybe<[PegOp]> = ref None();
+
+identityGrammar()
+{
+	onlyOnce(identityGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab10/identity_grammar.lingo");
+	});
+}
+
+simplify(expr,identities)
+{
+    simplifyExpr(expr,fold(identities,[],\acc,identity ->
+        arrayPush(acc,parsic(identityGrammar(), identity, subDivPegActions))));
+}
+
+simplifyExpr(expr, identities)
+{
+    switch(expr : Expr)
+    {
+        Div(e1,e2) : compareAndExchangeArr(Div(simplifyExpr(e1,identities),
+            simplifyExpr(e2,identities)), identities);
+        Product(e1,e2) : compareAndExchangeArr(Product(simplifyExpr(e1,identities),
+            simplifyExpr(e2,identities)), identities);
+        Sub(e1,e2) : compareAndExchangeArr(Sub(simplifyExpr(e1,identities),
+            simplifyExpr(e2,identities)), identities);
+        Add(e1,e2) : compareAndExchangeArr(Add(simplifyExpr(e1,identities),
+            simplifyExpr(e2,identities)), identities);
+        Neg(e1) : compareAndExchangeArr(Neg(simplifyExpr(e1,identities)),identities);
+        Rational(n,d) : getRational(n,d);
+        Var(s) : expr;
+    }
+}
+

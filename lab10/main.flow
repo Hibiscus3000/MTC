@@ -1,0 +1,12 @@
+import MTC/lab10/lab10;
+import MTC/lab8/lab8;
+
+main()
+{
+    test = "-99*99 + 101*101";
+    result = parsic(algebraGrammar(),test,subDivPegActions);
+    println("test " + test);
+    println("simplify(test) " + e2s(simplify(result,identities)));
+    println("simplifyConsts(simplify(test)) " + e2s(simplifyConsts(simplify(result,identities))));
+    quit(0);
+}
