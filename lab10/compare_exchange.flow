@@ -98,7 +98,7 @@ getDifficulty(expr)
         Product(e1,e2) : getDifficulty(e1) + getDifficulty(e2) + 2;
         Sub(e1,e2) : getDifficulty(e1) + getDifficulty(e2) + 1;
         Add(e1,e2) : getDifficulty(e1) + getDifficulty(e2) + 1;
-        Neg(e1) : getDifficulty(e1) + 2;
+        Neg(e1) : getDifficulty(e1) + 1;
         Rational(n,d) : 0;
         Var(s) : 0;
     }

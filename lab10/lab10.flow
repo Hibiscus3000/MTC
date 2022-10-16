@@ -5,12 +5,13 @@ export
     identities = ["-a * b = -(a * b)"
                 ,"a + b = b + a"
                 ,"a * b = b * a"
-                ,"a * b + a * c = a * (b + c)"
                 ,"-a + b = b - a"
                 ,"a + -b = a - b"
                 ,"x*x - y*y = (x - y) * (x + y)"
                 ,"a*a + 2*a*b + b*b = (a + b)*(a + b)"
                 ,"a*a - 2*a*b + b*b = (a - b)*(a - b)"
+                ,"a * b + a * c = a * (b + c)"
+                ,"a * b - a * c = a * (b - c)"
                 ];
     simplify(expr : Expr, identities : [string]) -> Expr;
 }
@@ -26,25 +27,133 @@ identityGrammar()
 
 simplify(expr,identities)
 {
-    simplifyExpr(expr,fold(identities,[],\acc,identity ->
-        arrayPush(acc,parsic(identityGrammar(), identity, subDivPegActions))));
+    pairOfTreesOfIdentities = splitIdentities(identities);
+    auxiliaryIdentities = tree2pairs(pairOfTreesOfIdentities.first);
+    simplificationIdentitiesTree = getSimplificationIdentities(auxiliaryIdentities,
+        pairOfTreesOfIdentities.second,makeTree());
+    //fori(0,length(auxiliaryIdentities) - 1,
+    //    \i -> println(e2s(auxiliaryIdentities[i].first) + " = " +  e2s(auxiliaryIdentities[i].second)));
+    simplificationIdentities = tree2pairs(simplificationIdentitiesTree);
+    //println("\n");
+    //fori(0,length(simplificationIdentities) - 1,
+    //    \i -> println(e2s(simplificationIdentities[i].first) + " = " +  e2s(simplificationIdentities[i].second)));
+    simplifyExprSwitch(expr,simplificationIdentities);
 }
 
-simplifyExpr(expr, identities)
+simplifyExprSwitch(expr, identities)
 {
     switch(expr : Expr)
     {
-        Div(e1,e2) : compareAndExchangeArr(Div(simplifyExpr(e1,identities),
-            simplifyExpr(e2,identities)), identities);
-        Product(e1,e2) : compareAndExchangeArr(Product(simplifyExpr(e1,identities),
-            simplifyExpr(e2,identities)), identities);
-        Sub(e1,e2) : compareAndExchangeArr(Sub(simplifyExpr(e1,identities),
-            simplifyExpr(e2,identities)), identities);
-        Add(e1,e2) : compareAndExchangeArr(Add(simplifyExpr(e1,identities),
-            simplifyExpr(e2,identities)), identities);
-        Neg(e1) : compareAndExchangeArr(Neg(simplifyExpr(e1,identities)),identities);
+        Div(e1,e2) : simplifyExpr(expr,e1,e2,makeDiv,identities);
+        Product(e1,e2) : simplifyExpr(expr,e1,e2,makeProduct,identities);
+        Sub(e1,e2) : simplifyExpr(expr,e1,e2,makeSub,identities);
+        Add(e1,e2) : simplifyExpr(expr,e1,e2,makeAdd,identities);
+        Neg(e1) :
+        {
+            v1 = compareAndExchangeArr(Neg(simplifyExprSwitch(e1,identities)),identities);
+            v2 = compareAndExchangeArr(expr,identities);
+            chooseSimpliest(expr,[v1,v2]);
+        }
         Rational(n,d) : getRational(n,d);
         Var(s) : expr;
     }
 }
 
+simplifyExpr(expr,e1,e2,make,identities)
+{
+    v1 = compareAndExchangeArr(make(simplifyExprSwitch(e1,identities),
+        simplifyExprSwitch(e2,identities)), identities);
+    v2 = compareAndExchangeArr(expr,identities);
+    chooseSimpliest(expr,[v1,v2]);
+}
+
+chooseSimpliest(expr,variantsArr)
+{
+    fold(variantsArr,expr,\acc,variant ->
+        if (getDifficulty(acc) > getDifficulty(variant))
+            variant
+        else
+            acc);
+}
+
+// return Pair of two trees, in witch first is a tree of auxiliary identites,
+// and the second is a tree of simplification identities
+
+splitIdentities(identities)
+{
+    fold(identities,Pair(makeTree(),makeTree()),
+        \acc : Pair<Tree<Expr,Expr>,Tree<Expr,Expr>>, identity : string -> 
+    {
+        identityExprPair = parsic(identityGrammar(), identity, subDivPegActions);
+        if (getDifficulty(identityExprPair.first) > getDifficulty(identityExprPair.second))
+            Pair(acc.first,setTree(acc.second,identityExprPair.first,identityExprPair.second))
+        else
+            Pair(setTree(acc.first,identityExprPair.first,identityExprPair.second),acc.second)
+    });
+}
+
+getSimplificationIdentities(auxiliaryIdentities,initialSimplificationIdentitiesTree,
+    finalSimplificationIdentitesTree)
+{
+    switch(popmax(initialSimplificationIdentitiesTree) : TreePopResult<Expr,Expr>)
+    {
+        PopResult(simplifiable,simplified,rest) :
+            getSimplificationIdentities(auxiliaryIdentities,rest,
+                fold(auxiliaryIdentities,finalSimplificationIdentitesTree,
+                    \finalTree,auxiliaryIdentity ->
+                        setTreeValues(finalTree,
+                            tree2pairs(getAllIdentitiesSwitch(auxiliaryIdentity,simplifiable,
+                                simplified)))));
+        EmptyPopResult() : finalSimplificationIdentitesTree;
+    }
+}
+
+getAllIdentitiesSwitch(auxiliaryIdentity,leftSide,rightSide) -> Tree<Expr,Expr>
+{
+    switch(leftSide : Expr)
+    {
+        Div(e1,e2) : getAllIdentities(auxiliaryIdentity,e1,e2,makeDiv,rightSide);
+        Product(e1,e2) : getAllIdentities(auxiliaryIdentity,e1,e2,makeProduct,rightSide);
+        Sub(e1,e2) : getAllIdentities(auxiliaryIdentity,e1,e2,makeSub,rightSide);
+        Add(e1,e2) : getAllIdentities(auxiliaryIdentity,e1,e2,makeAdd,rightSide);
+        Neg(e1) :
+        {
+            leftSidesTree = setTreeValues(makeTree(),
+                fold(tree2pairs(getAllIdentitiesSwitch(auxiliaryIdentity,e1,rightSide)),[],
+                    \acc,e1Variant -> arrayPush(acc,Pair(Neg(e1Variant.first),rightSide))));
+            setTree(leftSidesTree,compareAndExchange(Neg(e1),auxiliaryIdentity),rightSide);
+        }
+        Var(s) : makeTree1(leftSide,rightSide);
+        Rational(n,d) : makeTree1(leftSide,rightSide);
+    }
+}
+
+getAllIdentities(auxiliaryIdentity,e1,e2,make,rightSide) -> Tree<Expr,Expr>
+{
+    e1AllVariantPairs = tree2pairs(getAllIdentitiesSwitch(auxiliaryIdentity,e1,rightSide));
+    e2AllVariantPairs = tree2pairs(getAllIdentitiesSwitch(auxiliaryIdentity,e2,rightSide));
+    identitiesSidesTree = setTreeValues(makeTree(),fold(e1AllVariantPairs,[],
+        \acc1, e1Variant -> concat(acc1,fold(e2AllVariantPairs,[],
+            \acc2,e2Variant -> arrayPush(acc2,Pair(make(e1Variant.first,e2Variant.first),rightSide))))));
+    setTree(identitiesSidesTree,compareAndExchange(make(e1,e2),auxiliaryIdentity),rightSide);
+}
+
+makeDiv(e1,e2)
+{
+    Div(e1,e2);
+}
+
+makeProduct(e1,e2)
+{
+    Product(e1,e2);
+}
+
+makeSub(e1,e2)
+{
+    Sub(e1,e2);
+}
+
+makeAdd(e1,e2)
+{
+    Add(e1,e2);
+}
