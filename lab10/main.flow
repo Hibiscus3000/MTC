@@ -3,10 +3,10 @@ import MTC/lab8/lab8;
 
 main()
 {
-    test = "b*a + a*c - a * 13 + a * 13";
+    test = "x * (a + 1) * x * c * c + x * (b + 1) * x * x * c";
     result = parsic(algebraGrammar(),test,subDivPegActions);
     println("test " + test);
-    println("simplify(test) " + e2s(simplify(result,identities)));
+    println("simplify(test) " + e2s(simplify(result,defIdentities)));
     //println("simplifyConsts(simplify(test)) " + e2s(simplifyConsts(simplify(result,identities))));
     quit(0);
 }
