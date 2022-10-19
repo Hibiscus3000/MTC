@@ -19,8 +19,8 @@ e2sVariables(e,defs)
 
 // OPERATION PRIORITIES
 // 1 for Add and Sub
-// 2 for subtrahend, Product, Div and Neg
-// 2 for divider
+// 2 for subtrahend, Product and Div
+// 3 for divider and Neg
 // 4 for Var and Rational
 
 e2sParentheses(e, underOperationPriority, defs : [Pair<Var,Expr>]) -> string
@@ -51,7 +51,7 @@ e2sParentheses(e, underOperationPriority, defs : [Pair<Var,Expr>]) -> string
 		Neg(expr) :
 		{
 			operationPriority := 3;
-			"-" + e2sParentheses(expr,2,defs);
+			"-" + e2sParentheses(expr,3,defs);
 		}
 		Var(s) :
 		{

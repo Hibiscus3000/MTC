@@ -37,14 +37,14 @@ simplify(expr,identities)
             \allExprVariantsTree,exprVariantPair -> setTreeValues(allExprVariantsTree,tree2pairs(
                 getAllExprVarsSwitch(auxiliaryIdentity,exprVariantPair.first)))));
     allExprVarsPairs = tree2pairs(allExprVarsTree);
-    println(length(allExprVarsPairs));
+    //println(length(allExprVarsPairs));
     simplificationIdentities = tree2pairs(pairOfTreesOfIdentities.second);
     fold(allExprVarsPairs,expr,\acc,variant ->
     {
         simplified = simplifyExprSwitch(variant.first,simplificationIdentities);
         if (getDifficulty(acc) > getDifficulty(simplified))
         {
-            println(e2s(simplified));
+            //println(e2s(simplified));
             simplified
         }
         else

@@ -2,7 +2,7 @@ import MTC/lab7/e2s;
 
 main()
 {
-	test = "18 / 6 /3";
+	test = "185";
 	//test = "3 / 9 * 3 / a / (3 /     (3 + 4 * (5 - (4 * (--(4 / -16))))))";
 	result = parsic(algebraGrammar(), test, subDivPegActions);
 	println(result);
