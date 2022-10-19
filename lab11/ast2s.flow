@@ -1,0 +1,123 @@
+import MTC/lab11/NeMo_AST;
+
+export
+{
+    ast2s(program : Program) -> string;
+}
+
+ast2s(program)
+{
+    declarations2s(program.decls) + "\n" + body2s(program.body); 
+}
+
+declarations2s(decls : [Declaration])
+{
+    if (0 == length(decls))
+        ""
+    else
+    {
+        currentDeclaration = decls[length(decls) - 1];
+        declarations2s(removeIndex(decls,length(decls) - 1)) + 
+            "VAR " + operand2s(currentDeclaration.var) + " : " 
+            + type2s(currentDeclaration.type) + "\n";
+    }
+}
+
+type2s(type : Type)
+{
+    switch (type : Type)
+    {
+        IntType() : "INT";
+        ArrayType(indexingType, valueType) : "[" +
+            switch(indexingType : Type)
+            {
+                IntType() : "";
+                ArrayType(subIndexingType,subValueType) : type2s(indexingType) + " ARRAY OF ";
+            }
+            + type2s(valueType) + "]";
+    }
+}
+
+body2s(body)
+{
+    switch(body : Body)
+    {
+        Assignment(var,expr) : operand2s(var) + " = " + expr2s(expr);
+    }
+}
+
+expr2s(expr)
+{
+    switch(expr : Expr)
+    {
+        Arithmetic() : arithmetic2s(expr,0);
+        Functional() : functional2s(expr);
+    }
+}
+
+// OPERATION PRIORITIES
+// 1 for Add and Sub
+// 2 for subtrahend, Product and Div
+// 3 for divider and Neg
+// 4 for Var and Rational
+
+arithmetic2s(arithm, underOperationPriority)
+{
+	operationPriority = ref 0;
+	result = switch (arithm : Arithmetic)
+	{
+		Div(a1,a2) :
+		{
+			operationPriority := 2;
+			arithmetic2s(a1,2) + " / " + arithmetic2s(a2,3);
+		}
+		Product(a1,a2) :
+		{
+			operationPriority := 2;
+			arithmetic2s(a1,2) + " * " + arithmetic2s(a2,2);
+		}
+		Add(a1,a2) :
+		{
+			operationPriority := 1;
+            arithmetic2s(a1,1) + " + " + arithmetic2s(a2,1);
+		}
+		Sub(a1,a2) :
+		{
+			operationPriority := 1;
+            arithmetic2s(a1,1) + " - " + arithmetic2s(a2,2);
+		}
+		Neg(a1) :
+		{
+			operationPriority := 3;
+			"-" + arithmetic2s(a1,3);
+		}
+        Operand() :
+        {
+            operationPriority := 4;
+            operand2s(arithm);
+        }
+	}
+	if (^operationPriority < underOperationPriority)
+		"(" + result + ")"
+	else
+		result;
+}
+
+functional2s(functional)
+{
+    switch(functional : Functional)
+    {
+        Apply(array,index) : "APP(" + operand2s(array) + ", " + operand2s(index) + ")";
+        Update(array,index,new_value) : "UPD(" + operand2s(array) + ", " + operand2s(index)
+            + "," + operand2s(new_value) + ")";
+    }
+}
+
+operand2s(operand)
+{
+    switch(operand : Operand)
+    {
+        Int(i) : i2s(i);
+        Var(s) : s;
+    }
+}

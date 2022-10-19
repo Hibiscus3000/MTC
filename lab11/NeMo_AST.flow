@@ -1,0 +1,83 @@
+import lingo/pegcode/driver;
+
+export
+{
+    Program(decls : [Declaration], body : Body);
+
+    Declaration(var : Var, type : Type);
+    Type ::= IntType, ArrayType;
+        IntType();
+        ArrayType(indexingType : Type, valueType : Type);
+
+    Body ::= Assignment, Test, Sequence, Choice;
+        Assignment(var : Var, expr : Expr);
+        Sequence(bodies : [Body]);
+        Choice(bodies : [Body]);
+        Iteration(body : Body);
+    Expr ::= Arithmetic, Functional;
+
+    Arithmetic ::= Div,Product,Sub,Add,Neg,Operand;
+        Div(a1 : Arithmetic, a2 : Arithmetic);
+        Product(a1 : Arithmetic, a2 : Arithmetic);
+        Sub(a1 : Arithmetic, a2 : Arithmetic);
+        Add(a1 : Arithmetic, a2 : Arithmetic);
+        Neg(a1 : Arithmetic);
+
+    Functional ::= Apply,Update;
+        Apply(array : Var, index : Operand);
+        Update(array : Var, index : Operand, new_value : Operand);
+    
+    Test(relation : Relation);
+    Relation ::= Or, And, Not, RelationAtom;
+        Or(r1 : Relation, r2 : Relation);
+        And(r1 : Relation, r2 : Relation);
+        Not(r : Relation);
+    RelationAtom ::= LesserEquals, GreaterEquals, Lesser, Greater, Equals;
+        LesserEquals(a1 : Arithmetic, a2 : Arithmetic);
+        GreaterEquals(a1 : Arithmetic, a2 : Arithmetic);
+        Lesser(a1 : Arithmetic, a2 : Arithmetic);
+        Greater(a1 : Arithmetic, a2 : Arithmetic);
+        Equals(a1 : Arithmetic, a2 : Arithmetic);
+
+    Operand ::= Int,Var;    
+    Int(i : int);
+    Var(s : string);
+    parseNeMo(nemoProg : string) -> Program;
+    parseNeMoFile(filename : string) -> Program;
+}
+
+NeMoGrammarOp : ref Maybe<[PegOp]> = ref None();
+
+subDivPegActions =
+{
+	tSub = setTree(defaultPegActions.t, "buildSub", buildSub);
+	tDiv = setTree(tSub,"buildDiv",buildDiv);
+	SemanticActions(tDiv);
+}
+
+buildSub(xs : [flow]) -> Arithmetic
+{
+    fold(xs[1],xs[0],\acc,x -> Sub(acc,x));
+}
+
+buildDiv(xs : [flow]) -> Arithmetic
+{
+    fold(xs[1],xs[0],\acc,x -> Div(acc,x));    
+}
+
+NeMoGrammar()
+{
+	onlyOnce(NeMoGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab11/NeMo_grammar.lingo");
+	});
+}
+
+parseNeMo(nemoProg)
+{
+    parsic(NeMoGrammar(),nemoProg,subDivPegActions);
+}
+
+parseNeMoFile(filename)
+{
+    parseNeMo(getFileContent(filename));
+}
