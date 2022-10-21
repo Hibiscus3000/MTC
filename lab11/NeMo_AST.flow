@@ -9,11 +9,11 @@ export
         IntType();
         ArrayType(indexingType : Type, valueType : Type);
 
-    Body ::= Assignment, Test, Sequence, Choice;
+    Body ::= Assignment, Test, Sequence, Choice, Iteration;
         Assignment(var : Var, expr : Expr);
         Sequence(bodies : [Body]);
         Choice(bodies : [Body]);
-        Iteration(body : Body);
+        Iteration(sequence : Sequence);
     Expr ::= Arithmetic, Functional;
 
     Arithmetic ::= Div,Product,Sub,Add,Neg,Operand;
@@ -48,11 +48,12 @@ export
 
 NeMoGrammarOp : ref Maybe<[PegOp]> = ref None();
 
-subDivPegActions =
+subDivChoicePegActions =
 {
 	tSub = setTree(defaultPegActions.t, "buildSub", buildSub);
 	tDiv = setTree(tSub,"buildDiv",buildDiv);
-	SemanticActions(tDiv);
+    tChoice = setTree(tDiv,"buildChoice",buildChoice);
+	SemanticActions(tChoice);
 }
 
 buildSub(xs : [flow]) -> Arithmetic
@@ -65,6 +66,11 @@ buildDiv(xs : [flow]) -> Arithmetic
     fold(xs[1],xs[0],\acc,x -> Div(acc,x));    
 }
 
+buildChoice(xs : [flow]) -> Choice
+{
+    Choice(concat([xs[0]],xs[1]));
+}
+
 NeMoGrammar()
 {
 	onlyOnce(NeMoGrammarOp, \ -> {
@@ -74,7 +80,7 @@ NeMoGrammar()
 
 parseNeMo(nemoProg)
 {
-    parsic(NeMoGrammar(),nemoProg,subDivPegActions);
+    parsic(NeMoGrammar(),nemoProg,subDivChoicePegActions);
 }
 
 parseNeMoFile(filename)

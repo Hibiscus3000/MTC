@@ -7,7 +7,7 @@ export
 
 ast2s(program)
 {
-    declarations2s(program.decls) + "\n" + body2s(program.body); 
+    declarations2s(program.decls) + "\n" + body2s(program.body,""); 
 }
 
 declarations2s(decls : [Declaration])
@@ -19,7 +19,7 @@ declarations2s(decls : [Declaration])
         currentDeclaration = decls[length(decls) - 1];
         declarations2s(removeIndex(decls,length(decls) - 1)) + 
             "VAR " + operand2s(currentDeclaration.var) + " : " 
-            + type2s(currentDeclaration.type) + "\n";
+            + type2s(currentDeclaration.type) + ";\n";
     }
 }
 
@@ -38,11 +38,25 @@ type2s(type : Type)
     }
 }
 
-body2s(body)
+body2s(body,nesting)
 {
+    (if (body.structname != "Iteration") nesting else "") +
     switch(body : Body)
     {
-        Assignment(var,expr) : operand2s(var) + " = " + expr2s(expr);
+        Assignment(var,expr) : operand2s(var) + " := " + expr2s(expr);
+        Sequence(bodies) : "{\n"
+            + fold(bodies,"",\acc,body1 -> acc + body2s(body1,nesting + "\t")
+                + (if (body1.structname == "Sequence") "" else ";") + "\n")
+            + nesting + "}";
+        Choice(bodies) :
+        {
+            firstBody = bodies[0];
+            "{\n"
+            + fold(removeIndex(bodies,0),body2s(firstBody,nesting + "\t"),\acc,body1 -> acc + " U\n" + body2s(body1,nesting + "\t"))
+            + "\n" + nesting + "}";
+        }
+        Iteration(sequence) : body2s(sequence,nesting) + "*";
+        Test(relation) : "(" + relation2s(relation,0) + ") ?";
     }
 }
 
@@ -119,5 +133,50 @@ operand2s(operand)
     {
         Int(i) : i2s(i);
         Var(s) : s;
+    }
+}
+
+// BINARY OPERATIONS PRIORITIES
+// 1 for Or
+// 2 for And
+// 3 for Not
+
+relation2s(relation,underOperationPriority)
+{
+    operationPriority = ref 0;
+    result = switch(relation : Relation)
+    {
+        Or(r1,r2) :
+        {   
+            operationPriority := 1;
+            relation2s(r1,1) + " || " + relation2s(r2,1);
+        }
+        And(r1,r2) :
+        {
+            operationPriority := 2;
+            relation2s(r1,2) + " && " + relation2s(r2,2);
+        }
+        Not(r) :
+        {
+            operationPriority := 3;
+            "~" + relation2s(r,3);
+        }
+        RelationAtom() : relationAtom2s(relation);
+    }
+    if (underOperationPriority > ^operationPriority)
+        "(" + result + ")"
+    else
+        result;
+}
+
+relationAtom2s(relationAtom)
+{
+    switch(relationAtom : RelationAtom)
+    {
+        LesserEquals(a1,a2) : arithmetic2s(a1,0) + " <= " + arithmetic2s(a2,0);
+        GreaterEquals(a1,a2) : arithmetic2s(a1,0) + " >= " + arithmetic2s(a2,0);
+        Lesser(a1,a2) : arithmetic2s(a1,0) + " < " + arithmetic2s(a2,0);
+        Greater(a1,a2) : arithmetic2s(a1,0) + " > " + arithmetic2s(a2,0);
+        Equals(a1,a2) : arithmetic2s(a1,0) + " == " + arithmetic2s(a2,0);
     }
 }

@@ -1,0 +1,8 @@
+VAR v : [INT ARRAY OF INT];
+VAR x : [INT];
+VAR y : [INT ARRAY OF [INT]];
+VAR z : [[INT] ARRAY OF [INT ARRAY OF INT]];
+
+{
+    (~((x < (Y + Y) * 9) || x >=4 && (x == y || ~x == y))) ?;
+}

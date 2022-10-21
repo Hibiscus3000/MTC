@@ -1,0 +1,11 @@
+VAR v : [INT ARRAY OF INT];
+VAR x : [INT];
+VAR y : [INT ARRAY OF [INT]];
+VAR z : [[INT] ARRAY OF [INT ARRAY OF INT]];
+
+{
+    y := APP(z,x);
+    {
+        x := UPD(x,x,x);
+    }
+}

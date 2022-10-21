@@ -1,44 +1,45 @@
-program = '{' declaration*:decls '}' ws body:body {Program(:decls,:body)};
+program = declarations:decls sequence:sequence {Program(:decls,:sequence)};
 
-declaration = ws "VAR" ws var:v ws ':' ws type:t ';' {Declaration(:v,:t)};
+declarations = '{' declaration*:decls '}' {:decls} | declaration*;
+declaration = ws* "VAR" ws var:v ws* ':' ws* type:t ';' ws+ {Declaration(:v,:t)};
 type = "INT" {IntType()}
-    | '[' type:t ']' {ArrayType(:t,IntType())}
-    | '(' type:ind ws "ARRAY" ws "OF" ws type:val ')' {ArrayType(:val,:ind)};
+    | '[' type:ind ws+ "ARRAY" ws+ "OF" ws+ type:val ']' {ArrayType(:ind,:val)}
+    | '[' type:t ']' {ArrayType(:t,IntType())};
 
 body = assignment
     | test
-    | '{' sequence+:s '}' {Sequence(:s)}
-    | '{' body:b choice+:chs '}' {Choice(:b,:chs)}
+    | '{' ws* body:b choice+:chs '}' {buildChoice(:b,:chs)}
     | iteration;
-choice = ws 'U' ws body:b {:b};
-sequence = ws body:b ';' ws {:b};
-iteration = '{' body:b "}*" {Iteration(:b)};
+choice = ws* 'U' ws+ body:b ws* {:b};
+sequence = '{' ws* subsequence*:ss '}' ws* {Sequence(:ss)};
+iteration = '{' ws* subsequence+:ss "}*" {Iteration(Sequence(:ss))};
+subsequence = body:b ';' ws+ {:b} | sequence:s {:s};
 
-assignment = var:v ws ":=" ws expr:e ';' {Assignment(:v,:e)};
-expr = arithmetic | functional;
+assignment = var:v ws* ":=" expr:e {Assignment(:v,:e)};
+expr = functional | arithmetic;
 
-arithmetic = sub:s ws '+' ws arithmetic:a {Add(:s,:a)} | sub;
+arithmetic = sub:s ws* '+' ws* arithmetic:a {Add(:s,:a)} | sub;
 sub = prod:p subsub*:s {buildSub(:p,:s)}; 
-subsub = ws '-' prod:p {:p};
-prod = div:d ws '*' ws prod:p {Product(:d,:p)} | div;
+subsub = ws* '-' prod:p {:p};
+prod = div:d ws* '*' ws* prod:p {Product(:d,:p)} | div;
 div = neg:n subdiv*:d {buildDiv(:n,:d)};
-subdiv = ws '/' neg:n {:n};
-neg = ws '-' neg:n {Neg(:n)} | parentheses;
-parentheses = ws '(' ws arithmetic:a ws ')' ws {:a} | operand;
+subdiv = ws* '/' neg:n {:n};
+neg = ws* '-' neg:n {Neg(:n)} | parentheses;
+parentheses = ws* '(' ws* arithmetic:a ws* ')' {:a} | ws* operand;
 
-functional = "APP(" var:array ',' ws? operand:index ')' {Apply(:array,:index)}
-    | "UDP(" var:array ',' ws? operand:index ',' ws? operand:new_value {Update(:array,:index,:new_value)}; 
+functional = ws* "APP(" var:array ',' ws? operand:index ')' {Apply(:array,:index)}
+    | ws* "UPD(" var:array ',' ws? operand:index ',' ws? operand:new_value ')' {Update(:array,:index,:new_value)}; 
 
-test = relation:r ws "?;" {Test(:r)};
-or = and:and ws "||" ws or:or {Or(:and,:or)} | and;
-and = not:not ws "&&" ws and:and {And(:not,:and)} | not;
-not = '~' relation_atom:ra {Not(:ra)} | relation_atom;
-relation_atom = arithmetic:a1 "<=" arithmetic:a2 {LesserEquals(:a1,:a2)}
-    | arithmetic:a1 ">=" arithmetic:a2 {GreaterEquals(:a1,:a2)}
-    | arithmetic:a1 '<' arithmetic:a2 {Lesser(:a1,:a2)}
-    | arithmetic:a1 '>' arithmetic:a2 {Greater(:a1,:a2)}
-    | arithmetic:a1 '=' arithmetic:a2 {Equals(:a1,:a2)}
-    | '(' or:or ')' {:or};
+test = '(' ws* or:or ws* ") ?" {Test(:or)};
+or = and:and ws+ "||" ws+ or:or {Or(:and,:or)} | and;
+and = not:not ws+ "&&" ws+ and:and {And(:not,:and)} | not;
+not = '~' ws* relation_atom:ra {Not(:ra)} | relation_atom;
+relation_atom = arithmetic:a1 ws* "<=" ws* arithmetic:a2 {LesserEquals(:a1,:a2)}
+    | arithmetic:a1 ws* ">=" ws* arithmetic:a2 {GreaterEquals(:a1,:a2)}
+    | arithmetic:a1 ws* '<' ws* arithmetic:a2 {Lesser(:a1,:a2)}
+    | arithmetic:a1 ws* '>' ws* arithmetic:a2 {Greater(:a1,:a2)}
+    | arithmetic:a1 ws* "==" ws* arithmetic:a2 {Equals(:a1,:a2)}
+    | '(' ws* or:or ws* ')' {:or};
 
 operand = int | var;
 var = (letter (letter | digit)*)$v {Var($v)};
