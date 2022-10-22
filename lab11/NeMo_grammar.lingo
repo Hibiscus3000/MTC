@@ -7,7 +7,8 @@ type = "INT" {IntType()}
     | '[' type:t ']' {ArrayType(:t,IntType())};
 
 body_seq = body | sequence;
-body = test
+body = function
+    | test
     | assignment
     | '{' ws* body_seq:b choice+:chs ws* '}' {buildChoice(:b,:chs)}
     | iteration;
@@ -15,6 +16,9 @@ choice = ws+ 'U' ws+ body_seq:b {:b};
 sequence = '{' ws* subsequence*:ss '}' {Sequence(:ss)};
 iteration = '{' ws* subsequence+:ss "}*" {Iteration(Sequence(:ss))};
 subsequence = body:b ';' ws+ {:b} | sequence:s ws+ {:s};
+
+function = print;
+print = "print(" expr:e ')' {Print(:e)};
 
 assignment = var:v ws* ":=" expr:e {Assignment(:v,:e)};
 expr = functional | arithmetic;

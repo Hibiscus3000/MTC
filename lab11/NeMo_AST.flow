@@ -9,12 +9,14 @@ export
         IntType();
         ArrayType(indexingType : Type, valueType : Type);
 
-    Body ::= Assignment, Test, Sequence, Choice, Iteration;
+    Body ::= Assignment, Test, Sequence, Choice, Iteration, Function;
         Assignment(var : Var, expr : Expr);
         Sequence(bodies : [Body]);
         Choice(bodies : [Body]);
         Iteration(sequence : Sequence);
-        
+
+    Function ::= Print;
+        Print(expr : Expr);
     Expr ::= Arithmetic, Functional;
 
     Arithmetic ::= Div,Product,Sub,Add,Neg,Operand;

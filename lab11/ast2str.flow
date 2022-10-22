@@ -57,6 +57,15 @@ body2s(body,nesting)
         }
         Iteration(sequence) : body2s(sequence,nesting) + "*";
         Test() : test2s(body,nesting);
+        Function() : function2s(body);
+    }
+}
+
+function2s(function)
+{
+    switch(function : Function)
+    {
+        Print(expr) : "print(" + expr2s(expr) + ")";
     }
 }
 

@@ -12,4 +12,5 @@ VAR z : [[INT] ARRAY OF [INT ARRAY OF INT]];
                 x := x;
             } else x:= y*3;
     };
+    print(x + 3);
 }
