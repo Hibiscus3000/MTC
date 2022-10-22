@@ -1,7 +1,7 @@
 VAR v : INT;
 VAR x : INT;
 {
-    {{{{{v := 1; }* U v:=APP } U { {v := UUUU U v:=U }; }* U x:= v * (v * v - v) }; }*;
+    {{{{{v := 1; }* U v:=APP } U { {v := UUUU U v:=U }; } U x:= v * (v * v - v) }; }*;
      v := 1;
 	x := (v + 1);
 	{

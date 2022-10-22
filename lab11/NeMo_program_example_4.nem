@@ -1,0 +1,15 @@
+VAR v : [INT ARRAY OF INT];
+VAR x : [INT];
+VAR y : [INT ARRAY OF [INT]];
+VAR z : [[INT] ARRAY OF [INT ARRAY OF INT]];
+
+{
+    if (x > 3)
+    {
+        while (x < 3)
+            if (x < 3)
+            {
+                x := x;
+            } else x:= y*3;
+    };
+}

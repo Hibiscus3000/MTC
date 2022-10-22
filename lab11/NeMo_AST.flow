@@ -14,6 +14,7 @@ export
         Sequence(bodies : [Body]);
         Choice(bodies : [Body]);
         Iteration(sequence : Sequence);
+        
     Expr ::= Arithmetic, Functional;
 
     Arithmetic ::= Div,Product,Sub,Add,Neg,Operand;
@@ -24,10 +25,14 @@ export
         Neg(a1 : Arithmetic);
 
     Functional ::= Apply,Update;
-        Apply(array : Var, index : Operand);
-        Update(array : Var, index : Operand, new_value : Operand);
+        Apply(array : Expr, index : Expr);
+        Update(array : Expr, index : Expr, new_value : Expr);
     
-    Test(relation : Relation);
+    Test ::= SimpleTest,While,If;
+        SimpleTest(relation : Relation);
+        While(relation : Relation,body : Body);
+        If(relation : Relation, op_if : Body, op_else : [Body]);
+
     Relation ::= Or, And, Not, RelationAtom;
         Or(r1 : Relation, r2 : Relation);
         And(r1 : Relation, r2 : Relation);

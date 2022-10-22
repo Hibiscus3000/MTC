@@ -56,7 +56,21 @@ body2s(body,nesting)
             + "\n" + nesting + "}";
         }
         Iteration(sequence) : body2s(sequence,nesting) + "*";
-        Test(relation) : "(" + relation2s(relation,0) + ") ?";
+        Test() : test2s(body,nesting);
+    }
+}
+
+test2s(test,nesting)
+{
+    switch (test : Test)
+    {
+        SimpleTest(relation) : "(" + relation2s(relation,0) + ") ?";
+        While(relation,body) : "while (" + relation2s(relation,0) + ")\n" + body2s(body, nesting
+                + (if (body.structname != "Sequence") "\t" else ""));
+        If(relation,op_if,op_else) : "if (" + relation2s(relation,0) + ")\n" + body2s(op_if,nesting
+                + (if (op_if.structname != "Sequence") "\t" else ""))
+            + (if (1 == length(op_else)) "\n" + nesting + "else\n" + body2s(op_else[0],nesting
+                    + (if (op_else[0].structname != "Sequence") "\t" else "")) else "");
     }
 }
 
@@ -121,9 +135,9 @@ functional2s(functional)
 {
     switch(functional : Functional)
     {
-        Apply(array,index) : "APP(" + operand2s(array) + ", " + operand2s(index) + ")";
-        Update(array,index,new_value) : "UPD(" + operand2s(array) + ", " + operand2s(index)
-            + "," + operand2s(new_value) + ")";
+        Apply(array,index) : "APP(" + expr2s(array) + ", " + expr2s(index) + ")";
+        Update(array,index,new_value) : "UPD(" + expr2s(array) + ", " + expr2s(index)
+            + ", " + expr2s(new_value) + ")";
     }
 }
 

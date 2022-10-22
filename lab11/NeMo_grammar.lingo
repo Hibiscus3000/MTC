@@ -1,4 +1,4 @@
-program = declarations:decls sequence:sequence {Program(:decls,:sequence)};
+program = declarations:decls sequence:sequence ws* {Program(:decls,:sequence)};
 
 declarations = '{' declaration*:decls '}' {:decls} | declaration*;
 declaration = ws* "VAR" ws var:v ws* ':' ws* type:t ';' ws+ {Declaration(:v,:t)};
@@ -6,14 +6,15 @@ type = "INT" {IntType()}
     | '[' type:ind ws+ "ARRAY" ws+ "OF" ws+ type:val ']' {ArrayType(:ind,:val)}
     | '[' type:t ']' {ArrayType(:t,IntType())};
 
-body = assignment
-    | test
-    | '{' ws* body:b choice+:chs '}' {buildChoice(:b,:chs)}
+body_seq = body | sequence;
+body = test
+    | assignment
+    | '{' ws* body_seq:b choice+:chs ws* '}' {buildChoice(:b,:chs)}
     | iteration;
-choice = ws* 'U' ws+ body:b ws* {:b};
-sequence = '{' ws* subsequence*:ss '}' ws* {Sequence(:ss)};
+choice = ws+ 'U' ws+ body_seq:b {:b};
+sequence = '{' ws* subsequence*:ss '}' {Sequence(:ss)};
 iteration = '{' ws* subsequence+:ss "}*" {Iteration(Sequence(:ss))};
-subsequence = body:b ';' ws+ {:b} | sequence:s {:s};
+subsequence = body:b ';' ws+ {:b} | sequence:s ws+ {:s};
 
 assignment = var:v ws* ":=" expr:e {Assignment(:v,:e)};
 expr = functional | arithmetic;
@@ -27,10 +28,17 @@ subdiv = ws* '/' neg:n {:n};
 neg = ws* '-' neg:n {Neg(:n)} | parentheses;
 parentheses = ws* '(' ws* arithmetic:a ws* ')' {:a} | ws* operand;
 
-functional = ws* "APP(" var:array ',' ws? operand:index ')' {Apply(:array,:index)}
-    | ws* "UPD(" var:array ',' ws? operand:index ',' ws? operand:new_value ')' {Update(:array,:index,:new_value)}; 
+functional = apply | update;
+apply = ws* "APP(" (update | var):array ',' ws? expr:index ')' {Apply(:array,:index)};
+update = ws* "UPD(" (update | var):array ',' ws? expr:index ',' ws? expr:new_value ')'
+    {Update(:array,:index,:new_value)}; 
 
-test = '(' ws* or:or ws* ") ?" {Test(:or)};
+test = simple_test | while | if;
+simple_test = '(' ws* or:or ws* ") ?" {SimpleTest(:or)};
+while = "while" ws+ '(' or:or ')' ws+ body_seq:b {While(:or,:b)};
+if = "if" ws+ '(' or:or ')' ws+ body_seq:if else?:else {If(:or,:if,:else)};
+else = ws* "else" ws+ body_seq:b {:b};
+
 or = and:and ws+ "||" ws+ or:or {Or(:and,:or)} | and;
 and = not:not ws+ "&&" ws+ and:and {And(:not,:and)} | not;
 not = '~' ws* relation_atom:ra {Not(:ra)} | relation_atom;
