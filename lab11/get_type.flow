@@ -1,0 +1,77 @@
+import MTC/lab11/NeMo_AST;
+
+export
+{
+    isInt(arith : Arithmetic, declsTree : Tree<Var,Type>) -> bool;
+    getExprType(expr : Expr, delcsTree : Tree<Var,Type>) -> Maybe<Type>;
+    getArithmType(arithm : Arithmetic,declsTree : Tree<Var,Type>) -> Maybe<Type>;
+    checkTypeMatching(value : Expr, type : Type, declsTree : Tree<Var,Type>) -> bool;
+}
+
+getExprType(expr,declsTree)
+{
+    switch(expr : Expr)
+    {
+        Arithmetic() : getArithmType(expr,declsTree);
+        Functional() : getFunctionalType(expr,declsTree);
+    }
+}
+
+getArithmType(arithm,declsTree)
+{
+    switch(arithm : Arithmetic)
+    {
+        Div(a1,a2) : getArithmTypes(a1,a2,declsTree);
+        Product(a1,a2) : getArithmTypes(a1,a2,declsTree);
+        Add(a1,a2) : getArithmTypes(a1,a2,declsTree);
+        Sub(a1,a2) : getArithmTypes(a1,a2,declsTree);
+        Neg(a1) : getArithmType(a1,declsTree);
+        Operand() : getOperandType(arithm,declsTree);
+    }
+}
+
+getArithmTypes(a1,a2,declsTree) -> Maybe<Type>
+{
+    a1Type : Maybe<Type> = getArithmType(a1,declsTree);
+    a2Type : Maybe<Type> = getArithmType(a2,declsTree);
+    if (a1Type != a2Type)
+        None()
+    else
+        a1Type;
+}
+
+getOperandType(operand,declsTree) -> Maybe<Type>
+{
+    switch (operand : Operand)
+    {
+        Int(i) : Some(IntType());
+        Var(s) : lookupTree(declsTree,operand);
+    }
+}
+
+getFunctionalType(functional,declsTree)
+{
+    switch(functional : Functional)
+    {
+        Apply(array,index) :
+        {
+            maybeBind(getExprType(array,declsTree),\type ->
+            switch(type : Type)
+            {
+                ArrayType(indexingType,valueType) : Some(valueType);
+                default : None();
+            });
+        }
+        Update(array,index,new_value) : getExprType(array,declsTree);
+    }
+}
+
+isInt(arithm,declsTree)
+{
+    checkTypeMatching(arithm,IntType(), declsTree)
+}
+
+checkTypeMatching(value, type, declsTree)
+{
+    eitherMap(getExprType(value,declsTree),\valueType -> if (valueType != type) false else true, false);
+}

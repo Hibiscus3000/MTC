@@ -1,13 +1,18 @@
-import MTC/lab11/NeMo_AST;
+import MTC/lab11/get_type;
 
 export
 {
     ast2s(program : Program) -> string;
+    checkVariables(program : Program) -> string;
 }
 
 ast2s(program)
 {
-    declarations2s(program.decls) + "\n" + body2s(program.body,""); 
+    errorMsg = checkVariables(program);
+    if ("" == errorMsg)
+        declarations2s(program.decls) + "\n" + body2s(program.body,"")
+    else
+        errorMsg;
 }
 
 declarations2s(decls : [Declaration])
@@ -18,9 +23,13 @@ declarations2s(decls : [Declaration])
     {
         currentDeclaration = decls[length(decls) - 1];
         declarations2s(removeIndex(decls,length(decls) - 1)) + 
-            "VAR " + operand2s(currentDeclaration.var) + " : " 
-            + type2s(currentDeclaration.type) + ";\n";
+            declaration2s(currentDeclaration) + "\n";
     }
+}
+
+declaration2s(decl)
+{
+    "VAR " + operand2s(decl.var) + " : " + type2s(decl.type) + ";";
 }
 
 type2s(type : Type)
@@ -202,4 +211,281 @@ relationAtom2s(relationAtom)
         Greater(a1,a2) : arithmetic2s(a1,0) + " > " + arithmetic2s(a2,0);
         Equals(a1,a2) : arithmetic2s(a1,0) + " == " + arithmetic2s(a2,0);
     }
+}
+
+checkVariables(program)
+{
+    declsCheck = checkDeclaration(program.decls);
+    errorMsg = declsCheck.first + checkBody(program.body,declsCheck.second);
+    if (errorMsg != "")
+        "INVALID PROGRAM!!!\n" + errorMsg
+    else
+        "";
+}
+
+checkDeclaration(decls)
+{   
+    errorMsg = ref "";
+    declsTree = fold(decls,makeTree(),\tree,decl ->
+    {
+        if (isSome(lookupTree(tree,decl.var))) 
+        {
+            if (^errorMsg == "")
+                errorMsg := ^errorMsg + "Redeclaration of variable \"" + operand2s(decl.var)
+                    +"\"" + " in \"" + declaration2s(decl) + "\"\n";
+            tree;
+        }
+        else
+            setTree(tree,decl.var,decl.type);
+    });
+    Pair(^errorMsg,declsTree);
+}
+
+checkBody(body, declsTree)
+{
+    switch(body : Body)
+    {
+        Assignment(var,expr) :
+        {
+            exprErrorsPair = checkExpr(expr,declsTree);
+            exprUndeclaredVars = exprErrorsPair.second;
+            undeclaredVariables = concat(checkOperand(var,declsTree),exprUndeclaredVars);
+            typeMismatches = exprErrorsPair.first;
+            if (0 != length(undeclaredVariables))
+                formUndeclaredVarsMsg(undeclaredVariables,body2s(body,""))
+            else
+            {
+                (if (getExprType(var,declsTree) != getExprType(expr,declsTree))
+                    "Types of right and left sides of assignment \"" + body2s(body,"") + "\" do not match\n"
+                else
+                    "")
+                + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n");
+            }
+        }
+        Sequence(bodies) : fold(bodies,"",\acc,body1 -> acc + checkBody(body1,declsTree));
+        Choice(bodies) : fold(bodies,"",\acc,body1 -> acc + checkBody(body1,declsTree));
+        Iteration(sequence) : checkBody(sequence,declsTree);
+        Test() : checkTest(body,declsTree);
+        Function() : checkFunction(body,declsTree);
+    }
+}
+
+checkFunction(function,declsTree)
+{
+    switch(function : Function)
+    {
+        Print(expr) : 
+        {
+            exprErrorsPair = checkExpr(expr,declsTree);
+            undeclaredVariables = exprErrorsPair.second;
+            typeMismatches = exprErrorsPair.first;
+            if (0 != length(undeclaredVariables))
+                formUndeclaredVarsMsg(undeclaredVariables,"print(" + expr2s(expr) + ")")
+            else
+                {
+                    (if (isSome(getExprType(expr,declsTree)))
+                        ""
+                    else
+                        "Invalid expression type in \"" + function2s(function) + "\"\n")
+                    + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n");
+                }
+        }
+    }
+}
+
+checkTest(test,declsTree : Tree<Var,Type>)
+{
+    switch (test : Test)
+    {
+        SimpleTest(relation) : formTestErrorsMsg(relation,declsTree,"(",") ?")
+        While(relation,body) :
+        {   
+            formTestErrorsMsg(relation,declsTree,"while (",")")
+            + checkBody(body,declsTree);
+        }
+        If(relation,op_if,op_else) :
+        {
+            formTestErrorsMsg(relation,declsTree,"if (",")")
+            + checkBody(op_if,declsTree)
+            + if (1 == length(op_else)) checkBody(op_else[0],declsTree) else "";
+        }
+    }
+}
+
+formTestErrorsMsg(relation,declsTree,prefix,postfix)
+{
+    relationValidity = checkRelation(relation,declsTree);
+    undeclaredVariables = relationValidity.second;
+    typeMismatches = relationValidity.first;
+    fold(typeMismatches,"",\acc,error -> acc + error + "\n")
+    +
+    (if (0 != length(undeclaredVariables))
+        formUndeclaredVarsMsg(undeclaredVariables,prefix + relation2s(relation,0) + postfix)
+    else
+        "");
+}
+
+checkExpr(expr,declsTree) -> Pair<[string],[string]>
+{
+    switch(expr : Expr)
+    {
+        Arithmetic() : Pair([],checkArithmetic(expr,declsTree));
+        Functional() : checkFunctional(expr,declsTree);
+    }
+}
+
+checkArithmetic(arithm,declsTree)
+{
+	switch (arithm : Arithmetic)
+	{
+		Div(a1,a2) : getUndeclaredVariablesArithm(a1,a2,declsTree);
+		Product(a1,a2) : getUndeclaredVariablesArithm(a1,a2,declsTree);
+		Add(a1,a2) : getUndeclaredVariablesArithm(a1,a2,declsTree);
+		Sub(a1,a2) : getUndeclaredVariablesArithm(a1,a2,declsTree);
+		Neg(a1) : checkArithmetic(a1,declsTree);
+        Operand() : checkOperand(arithm,declsTree);
+	}
+}
+
+getUndeclaredVariablesArithm(a1,a2,declsTree)
+{
+    concat(checkArithmetic(a1,declsTree),checkArithmetic(a2,declsTree));
+}
+
+checkFunctional(functional,declsTree)
+{
+    switch(functional : Functional)
+    {
+        Apply(array,index) :
+        {
+            arrayType = getExprType(array,declsTree);
+            errorMsg = eitherMap(arrayType,\arrType ->
+                switch(arrType : Type)
+                {
+                    ArrayType(indexingType,valueType) : checkType(index,indexingType,"indexing",
+                        "Second",declsTree,functional);
+                    default : firstOperandIsNotAnArray(functional);
+                },firstOperandIsNotAnArray(functional));
+            returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree)
+        }
+        Update(array,index,new_value) :
+        {
+            arrayType = getExprType(array,declsTree);
+            errorMsg = eitherMap(arrayType,\arrType ->
+                switch(arrType : Type)
+                {
+                    ArrayType(indexingType,valueType) :
+                    {
+                        indexingError = checkType(index,indexingType,"indexing","Second",declsTree,functional);
+                        valueError = checkType(new_value,valueType,"value","Third",declsTree,functional);
+                        if ("" != indexingError && "" != valueError)
+                            indexingError + "\n" + valueError
+                        else
+                            indexingError + valueError;
+                    }
+                    default : firstOperandIsNotAnArray(functional);
+                },firstOperandIsNotAnArray(functional))
+            arrayIndexErrMsgs = returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree);
+            valueCheck = checkExpr(new_value,declsTree);
+            Pair(concat(arrayIndexErrMsgs.first,valueCheck.first),
+                concat(arrayIndexErrMsgs.second,valueCheck.second));
+        }
+    }
+}
+
+returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree)
+{
+    arrayCheck = checkExpr(array,declsTree);
+    indexCheck = checkExpr(index,declsTree);
+    Pair(concat(concat(if ("" != errorMsg) [errorMsg] else [],
+        arrayCheck.first),indexCheck.first),concat(arrayCheck.second,indexCheck.second));
+}
+
+checkType(smth, smthType, smthName, operandNum, declsTree, functional)
+{
+    if (!checkTypeMatching(smth,smthType,declsTree))
+        operandNum + " operand's type in \"" + functional2s(functional)
+            + "\" and " + smthName + " type of array do not match"
+    else
+        "";
+}
+
+firstOperandIsNotAnArray(functional)
+{
+    "First operand in \"" + functional2s(functional) + "\" is not an ARRAY";
+}
+
+checkOperand(operand,declsTree)
+{
+    switch(operand : Operand)
+    {
+        Int(i) : [];
+        Var(s) : isDeclared(operand,declsTree);
+    }
+}
+
+checkRelation(relation,declsTree)
+{
+     switch(relation : Relation)
+    {
+        Or(r1,r2) : getRelationValidity(r1,r2,declsTree);
+        And(r1,r2) : getRelationValidity(r1,r2,declsTree);
+        Not(r) : checkRelation(r,declsTree)
+        RelationAtom() : checkRelationAtom(relation,declsTree);
+    }
+}
+
+getRelationValidity(r1,r2,declsTree)
+{
+    r1Pair = checkRelation(r1,declsTree);
+    r2Pair = checkRelation(r2,declsTree);
+    Pair(concat(r1Pair.second,r2Pair.second),concat(r1Pair.second,r2Pair.second));
+}
+
+checkRelationAtom(relationAtom, declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
+{
+    switch(relationAtom : RelationAtom)
+    {
+        LesserEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        GreaterEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Lesser(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Greater(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Equals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+    }
+}
+
+getRelationAtomValidity(a1,a2,declsTree,relationAtom) -> Pair<[string],[string]>
+{
+    undeclaredVariables = getUndeclaredVariablesArithm(a1,a2,declsTree);
+    leftSideIsInt = ref true;
+    rightSideIsInt = ref true;
+    if (0 == length(undeclaredVariables))
+    {
+        if (!isInt(a1,declsTree))
+            leftSideIsInt := false;
+        if (!isInt(a2,declsTree))
+            rightSideIsInt := false;
+        if (^leftSideIsInt && ^rightSideIsInt)
+            Pair([],[])
+        else
+            Pair([(if (!^leftSideIsInt && !^rightSideIsInt) "Types of left and right sides of " else "Type of "
+                    + (if (!^rightSideIsInt) "right side of " else "left side of "))
+                + "\"" + relationAtom2s(relationAtom) + "\""
+                + (if (!^leftSideIsInt && !^rightSideIsInt) " are " else " is ") 
+                + "not INT"],[]);
+    }
+    else
+        Pair([],undeclaredVariables);
+}
+
+isDeclared(var, declsTree)
+{
+    if (!isSome(lookupTree(declsTree,var))) [operand2s(var)] else [];
+}   
+
+formUndeclaredVarsMsg(varNames, bodyStr)
+{
+    "Attempting to use undeclared variable" + (if (1 != length(varNames)) "s " else " ")
+    + fold(varNames,"",\acc,varName -> acc + (if (acc != "") ", " else "") + "\"" + varName + "\"")
+    + " in \"" + bodyStr + "\"\n";
 }
