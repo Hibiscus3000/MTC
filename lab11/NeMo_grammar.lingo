@@ -33,7 +33,8 @@ neg = ws* '-' neg:n {Neg(:n)} | parentheses;
 parentheses = ws* '(' ws* arithmetic:a ws* ')' {:a} | ws* operand;
 
 functional = apply | update;
-apply = ws* "APP(" (update | var):array ',' ws? expr:index ')' {Apply(:array,:index)};
+apply = ws* "APP(" (update | var):array ',' ws? expr:index ')' {Apply(:array,:index)}
+     | ws* (update | var):array '[' expr:index ']' {Apply(:array,:index)};
 update = ws* "UPD(" (update | var):array ',' ws? expr:index ',' ws? expr:new_value ')'
     {Update(:array,:index,:new_value)}; 
 
