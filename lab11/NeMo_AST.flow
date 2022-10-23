@@ -10,7 +10,7 @@ export
         ArrayType(indexingType : Type, valueType : Type);
 
     Body ::= Assignment, Test, Sequence, Choice, Iteration, Function;
-        Assignment(var : Var, expr : Expr);
+        Assignment(varApply : VarApply, expr : Expr);
         Sequence(bodies : [Body]);
         Choice(bodies : [Body]);
         Iteration(sequence : Sequence);
@@ -46,9 +46,11 @@ export
         Greater(a1 : Arithmetic, a2 : Arithmetic);
         Equals(a1 : Arithmetic, a2 : Arithmetic);
 
-    Operand ::= Int, Var, Apply;    
+    Operand ::= Int, VarApply;    
+    VarApply ::= Var, Apply;
         Int(i : int);
         Var(s : string);
+    
     parseNeMo(nemoProg : string) -> Program;
     parseNeMoFile(filename : string) -> Program;
 }

@@ -3,12 +3,12 @@ import MTC/lab11/get_type;
 export
 {
     ast2s(program : Program) -> string;
-    checkVariables(program : Program) -> string;
+    checkErrors(program : Program) -> string;
 }
 
 ast2s(program)
 {
-    errorMsg = checkVariables(program);
+    errorMsg = checkErrors(program);
     if ("" == errorMsg)
         declarations2s(program.decls) + "\n" + body2s(program.body,"")
     else
@@ -52,7 +52,7 @@ body2s(body,nesting)
     (if (body.structname != "Iteration") nesting else "") +
     switch(body : Body)
     {
-        Assignment(var,expr) : operand2s(var) + " := " + expr2s(expr);
+        Assignment(varApply,expr) : varApply2s(varApply) + " := " + expr2s(expr);
         Sequence(bodies) : "{\n"
             + fold(bodies,"",\acc,body1 -> acc + body2s(body1,nesting + "\t")
                 + (if (body1.structname == "Sequence") "" else ";") + "\n")
@@ -155,8 +155,21 @@ operand2s(operand)
     switch(operand : Operand)
     {
         Int(i) : i2s(i);
+        VarApply() : 
+            switch (operand : VarApply)
+            {
+                Var(s) : s;
+                Apply(array,index) : "APP(" + expr2s(array) + ", " + expr2s(index) + ")";
+            }
+    }
+}
+
+varApply2s(varApply)
+{
+    switch (varApply : VarApply)
+    {
         Var(s) : s;
-        Apply(array,index) : "APP(" + expr2s(array) + ", " + expr2s(index) + ")";
+        Apply(array,index) : expr2s(array) + "[" + expr2s(index) + "]";
     }
 }
 
@@ -205,7 +218,7 @@ relationAtom2s(relationAtom)
     }
 }
 
-checkVariables(program)
+checkErrors(program)
 {
     declsCheck = checkDeclaration(program.decls);
     errorMsg = declsCheck.first + checkBody(program.body,declsCheck.second);
@@ -399,19 +412,23 @@ checkOperand(operand,declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
     switch(operand : Operand)
     {
         Int(i) : Pair([],[]);
-        Var(s) : Pair([],isDeclared(operand,declsTree));
-        Apply(array,index) :
-        {
-            arrayType = getExprType(array,declsTree);
-            errorMsg = eitherMap(arrayType,\arrType ->
-                switch(arrType : Type)
+        VarApply() :
+            switch (operand : VarApply)
+            {
+                Var(s) : Pair([],isDeclared(operand,declsTree));
+                Apply(array,index) :
                 {
-                    ArrayType(indexingType,valueType) : checkType(index,indexingType,"indexing",
-                        "Second",declsTree,operand);
-                    default : firstOperandIsNotAnArray(operand);
-                },firstOperandIsNotAnArray(operand));
-            returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree)
-        }
+                    arrayType = getExprType(array,declsTree);
+                    errorMsg = eitherMap(arrayType,\arrType ->
+                    switch(arrType : Type)
+                    {
+                        ArrayType(indexingType,valueType) : checkType(index,indexingType,"indexing",
+                            "Second",declsTree,operand);
+                        default : firstOperandIsNotAnArray(operand);
+                    },firstOperandIsNotAnArray(operand));
+                    returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree)
+                }
+            }
     }
 }
 

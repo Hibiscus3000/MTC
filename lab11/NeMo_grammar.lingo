@@ -20,7 +20,7 @@ subsequence = body:b ';' ws+ {:b} | sequence:s ws+ {:s};
 function = print;
 print = "print(" expr:e ')' {Print(:e)};
 
-assignment = var:v ws* ":=" expr:e {Assignment(:v,:e)};
+assignment = apply_var:av ws* ":=" expr:e {Assignment(:av,:e)};
 expr = update | arithmetic;
 
 arithmetic = sub:s ws* '+' ws* arithmetic:a {Add(:s,:a)} | sub;
