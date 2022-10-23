@@ -21,7 +21,7 @@ function = print;
 print = "print(" expr:e ')' {Print(:e)};
 
 assignment = var:v ws* ":=" expr:e {Assignment(:v,:e)};
-expr = functional | arithmetic;
+expr = update | arithmetic;
 
 arithmetic = sub:s ws* '+' ws* arithmetic:a {Add(:s,:a)} | sub;
 sub = prod:p subsub*:s {buildSub(:p,:s)}; 
@@ -32,10 +32,9 @@ subdiv = ws* '/' neg:n {:n};
 neg = ws* '-' neg:n {Neg(:n)} | parentheses;
 parentheses = ws* '(' ws* arithmetic:a ws* ')' {:a} | ws* operand;
 
-functional = apply | update;
-apply = ws* "APP(" (update | var):array ',' ws? expr:index ')' {Apply(:array,:index)}
+apply = ws* "APP(" (update | apply_var):array ',' ws? expr:index ')' {Apply(:array,:index)}
      | ws* (update | var):array '[' expr:index ']' {Apply(:array,:index)};
-update = ws* "UPD(" (update | var):array ',' ws? expr:index ',' ws? expr:new_value ')'
+update = ws* "UPD(" (update | apply_var):array ',' ws? expr:index ',' ws? expr:new_value ')'
     {Update(:array,:index,:new_value)}; 
 
 test = simple_test | while | if;
@@ -54,7 +53,8 @@ relation_atom = arithmetic:a1 ws* "<=" ws* arithmetic:a2 {LesserEquals(:a1,:a2)}
     | arithmetic:a1 ws* "==" ws* arithmetic:a2 {Equals(:a1,:a2)}
     | '(' ws* or:or ws* ')' {:or};
 
-operand = int | var;
+operand = int | apply_var;
+apply_var = apply | var;
 var = (letter (letter | digit)*)$v {Var($v)};
 int = digit+$d {Int(s2i($d))};
 letter = 'a' - 'z' | 'A' - 'Z' | '_';

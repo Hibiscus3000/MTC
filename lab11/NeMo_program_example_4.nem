@@ -2,8 +2,9 @@ VAR v : [INT ARRAY OF INT];
 VAR x : [INT];
 VAR y : [INT ARRAY OF [INT]];
 VAR z : [[INT] ARRAY OF [INT ARRAY OF INT]];
-
+VAR a : INT;
 {
+    a := x[a + 13 * a];
     if (x > 3)
     {
         while (x < 3)

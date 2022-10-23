@@ -4,5 +4,5 @@ VAR y : [INT ARRAY OF [INT]];
 VAR z : [[INT] ARRAY OF [INT ARRAY OF INT]];
 
 {
-    v := APP(UPD(x,3,5),x[15]);
+    v := APP(UPD(x,3,5),x[15] + 3);
 }

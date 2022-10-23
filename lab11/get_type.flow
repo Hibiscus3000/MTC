@@ -2,7 +2,7 @@ import MTC/lab11/NeMo_AST;
 
 export
 {
-    isInt(arith : Arithmetic, declsTree : Tree<Var,Type>) -> bool;
+    isInt(expr : Expr, declsTree : Tree<Var,Type>) -> bool;
     getExprType(expr : Expr, delcsTree : Tree<Var,Type>) -> Maybe<Type>;
     getArithmType(arithm : Arithmetic,declsTree : Tree<Var,Type>) -> Maybe<Type>;
     checkTypeMatching(value : Expr, type : Type, declsTree : Tree<Var,Type>) -> bool;
@@ -13,7 +13,7 @@ getExprType(expr,declsTree)
     switch(expr : Expr)
     {
         Arithmetic() : getArithmType(expr,declsTree);
-        Functional() : getFunctionalType(expr,declsTree);
+        Update(array,index,new_value) : getExprType(array,declsTree);
     }
 }
 
@@ -46,13 +46,6 @@ getOperandType(operand,declsTree) -> Maybe<Type>
     {
         Int(i) : Some(IntType());
         Var(s) : lookupTree(declsTree,operand);
-    }
-}
-
-getFunctionalType(functional,declsTree)
-{
-    switch(functional : Functional)
-    {
         Apply(array,index) :
         {
             maybeBind(getExprType(array,declsTree),\type ->
@@ -62,13 +55,12 @@ getFunctionalType(functional,declsTree)
                 default : None();
             });
         }
-        Update(array,index,new_value) : getExprType(array,declsTree);
     }
 }
 
-isInt(arithm,declsTree)
+isInt(expr,declsTree)
 {
-    checkTypeMatching(arithm,IntType(), declsTree)
+    checkTypeMatching(expr,IntType(), declsTree)
 }
 
 checkTypeMatching(value, type, declsTree)

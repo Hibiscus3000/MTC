@@ -17,7 +17,7 @@ export
 
     Function ::= Print;
         Print(expr : Expr);
-    Expr ::= Arithmetic, Functional;
+    Expr ::= Arithmetic, Update;
 
     Arithmetic ::= Div,Product,Sub,Add,Neg,Operand;
         Div(a1 : Arithmetic, a2 : Arithmetic);
@@ -46,9 +46,9 @@ export
         Greater(a1 : Arithmetic, a2 : Arithmetic);
         Equals(a1 : Arithmetic, a2 : Arithmetic);
 
-    Operand ::= Int,Var;    
-    Int(i : int);
-    Var(s : string);
+    Operand ::= Int, Var, Apply;    
+        Int(i : int);
+        Var(s : string);
     parseNeMo(nemoProg : string) -> Program;
     parseNeMoFile(filename : string) -> Program;
 }

@@ -97,7 +97,8 @@ expr2s(expr)
     switch(expr : Expr)
     {
         Arithmetic() : arithmetic2s(expr,0);
-        Functional() : functional2s(expr);
+        Update(array,index,new_value) : "UPD(" + expr2s(array) + ", " + expr2s(index)
+            + ", " + expr2s(new_value) + ")";
     }
 }
 
@@ -149,22 +150,13 @@ arithmetic2s(arithm, underOperationPriority)
 		result;
 }
 
-functional2s(functional)
-{
-    switch(functional : Functional)
-    {
-        Apply(array,index) : "APP(" + expr2s(array) + ", " + expr2s(index) + ")";
-        Update(array,index,new_value) : "UPD(" + expr2s(array) + ", " + expr2s(index)
-            + ", " + expr2s(new_value) + ")";
-    }
-}
-
 operand2s(operand)
 {
     switch(operand : Operand)
     {
         Int(i) : i2s(i);
         Var(s) : s;
+        Apply(array,index) : "APP(" + expr2s(array) + ", " + expr2s(index) + ")";
     }
 }
 
@@ -249,16 +241,21 @@ checkBody(body, declsTree)
         {
             exprErrorsPair = checkExpr(expr,declsTree);
             exprUndeclaredVars = exprErrorsPair.second;
-            undeclaredVariables = concat(checkOperand(var,declsTree),exprUndeclaredVars);
-            typeMismatches = exprErrorsPair.first;
+            operandErrorsPair = checkOperand(var,declsTree);
+            operandUndeclaredVariables = operandErrorsPair.second;
+            undeclaredVariables = concat(operandUndeclaredVariables,exprUndeclaredVars);
+            typeMismatches = concat(operandErrorsPair.first,exprErrorsPair.first);
             if (0 != length(undeclaredVariables))
                 formUndeclaredVarsMsg(undeclaredVariables,body2s(body,""))
             else
             {
-                (if (getExprType(var,declsTree) != getExprType(expr,declsTree))
-                    "Types of right and left sides of assignment \"" + body2s(body,"") + "\" do not match\n"
+                (if (isComplicated(expr) && !isInt(expr,declsTree))
+                    "Right side of \"" + body2s(body,"") + "\" is not INT\n"
                 else
-                    "")
+                    (if (getExprType(var,declsTree) != getExprType(expr,declsTree))
+                        "Types of right and left sides of assignment \"" + body2s(body,"") + "\" do not match\n"
+                    else
+                        ""))
                 + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n");
             }
         }
@@ -329,45 +326,7 @@ checkExpr(expr,declsTree) -> Pair<[string],[string]>
 {
     switch(expr : Expr)
     {
-        Arithmetic() : Pair([],checkArithmetic(expr,declsTree));
-        Functional() : checkFunctional(expr,declsTree);
-    }
-}
-
-checkArithmetic(arithm,declsTree)
-{
-	switch (arithm : Arithmetic)
-	{
-		Div(a1,a2) : getUndeclaredVariablesArithm(a1,a2,declsTree);
-		Product(a1,a2) : getUndeclaredVariablesArithm(a1,a2,declsTree);
-		Add(a1,a2) : getUndeclaredVariablesArithm(a1,a2,declsTree);
-		Sub(a1,a2) : getUndeclaredVariablesArithm(a1,a2,declsTree);
-		Neg(a1) : checkArithmetic(a1,declsTree);
-        Operand() : checkOperand(arithm,declsTree);
-	}
-}
-
-getUndeclaredVariablesArithm(a1,a2,declsTree)
-{
-    concat(checkArithmetic(a1,declsTree),checkArithmetic(a2,declsTree));
-}
-
-checkFunctional(functional,declsTree)
-{
-    switch(functional : Functional)
-    {
-        Apply(array,index) :
-        {
-            arrayType = getExprType(array,declsTree);
-            errorMsg = eitherMap(arrayType,\arrType ->
-                switch(arrType : Type)
-                {
-                    ArrayType(indexingType,valueType) : checkType(index,indexingType,"indexing",
-                        "Second",declsTree,functional);
-                    default : firstOperandIsNotAnArray(functional);
-                },firstOperandIsNotAnArray(functional));
-            returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree)
-        }
+        Arithmetic() : checkArithmetic(expr,declsTree);
         Update(array,index,new_value) :
         {
             arrayType = getExprType(array,declsTree);
@@ -376,15 +335,15 @@ checkFunctional(functional,declsTree)
                 {
                     ArrayType(indexingType,valueType) :
                     {
-                        indexingError = checkType(index,indexingType,"indexing","Second",declsTree,functional);
-                        valueError = checkType(new_value,valueType,"value","Third",declsTree,functional);
+                        indexingError = checkType(index,indexingType,"indexing","Second",declsTree,expr);
+                        valueError = checkType(new_value,valueType,"value","Third",declsTree,expr);
                         if ("" != indexingError && "" != valueError)
                             indexingError + "\n" + valueError
                         else
                             indexingError + valueError;
                     }
-                    default : firstOperandIsNotAnArray(functional);
-                },firstOperandIsNotAnArray(functional))
+                    default : firstOperandIsNotAnArray(expr);
+                },firstOperandIsNotAnArray(expr))
             arrayIndexErrMsgs = returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree);
             valueCheck = checkExpr(new_value,declsTree);
             Pair(concat(arrayIndexErrMsgs.first,valueCheck.first),
@@ -393,7 +352,27 @@ checkFunctional(functional,declsTree)
     }
 }
 
-returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree)
+checkArithmetic(arithm,declsTree) -> Pair<[string],[string]>
+{
+	switch (arithm : Arithmetic)
+	{
+		Div(a1,a2) : Pair([],getUndeclaredVariablesArithm(a1,a2,declsTree));
+		Product(a1,a2) : Pair([],getUndeclaredVariablesArithm(a1,a2,declsTree));
+		Add(a1,a2) : Pair([],getUndeclaredVariablesArithm(a1,a2,declsTree));
+		Sub(a1,a2) : Pair([],getUndeclaredVariablesArithm(a1,a2,declsTree));
+		Neg(a1) : checkArithmetic(a1,declsTree);
+        Operand() : checkOperand(arithm,declsTree);
+	}
+}
+
+getUndeclaredVariablesArithm(a1,a2,declsTree) -> [string]
+{
+    a1Checked = checkArithmetic(a1,declsTree);
+    a2Checked = checkArithmetic(a2,declsTree);
+    concat(a1Checked.second,a2Checked.second);
+}
+
+returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree) -> Pair<[string],[string]>
 {
     arrayCheck = checkExpr(array,declsTree);
     indexCheck = checkExpr(index,declsTree);
@@ -401,26 +380,38 @@ returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree)
         arrayCheck.first),indexCheck.first),concat(arrayCheck.second,indexCheck.second));
 }
 
-checkType(smth, smthType, smthName, operandNum, declsTree, functional)
+checkType(smth, smthType, smthName, operandNum, declsTree, functional : Functional)
 {
     if (!checkTypeMatching(smth,smthType,declsTree))
-        operandNum + " operand's type in \"" + functional2s(functional)
+        operandNum + " operand's type in \"" + expr2s(functional)
             + "\" and " + smthName + " type of array do not match"
     else
         "";
 }
 
-firstOperandIsNotAnArray(functional)
+firstOperandIsNotAnArray(functional : Functional)
 {
-    "First operand in \"" + functional2s(functional) + "\" is not an ARRAY";
+    "First operand in \"" + expr2s(functional) + "\" is not an ARRAY";
 }
 
-checkOperand(operand,declsTree)
+checkOperand(operand,declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
 {
     switch(operand : Operand)
     {
-        Int(i) : [];
-        Var(s) : isDeclared(operand,declsTree);
+        Int(i) : Pair([],[]);
+        Var(s) : Pair([],isDeclared(operand,declsTree));
+        Apply(array,index) :
+        {
+            arrayType = getExprType(array,declsTree);
+            errorMsg = eitherMap(arrayType,\arrType ->
+                switch(arrType : Type)
+                {
+                    ArrayType(indexingType,valueType) : checkType(index,indexingType,"indexing",
+                        "Second",declsTree,operand);
+                    default : firstOperandIsNotAnArray(operand);
+                },firstOperandIsNotAnArray(operand));
+            returnErrorMsgsAndUndeclared(errorMsg, array, index, declsTree)
+        }
     }
 }
 
@@ -478,7 +469,7 @@ getRelationAtomValidity(a1,a2,declsTree,relationAtom) -> Pair<[string],[string]>
         Pair([],undeclaredVariables);
 }
 
-isDeclared(var, declsTree)
+isDeclared(var, declsTree) -> [string]
 {
     if (!isSome(lookupTree(declsTree,var))) [operand2s(var)] else [];
 }   
@@ -488,4 +479,20 @@ formUndeclaredVarsMsg(varNames, bodyStr)
     "Attempting to use undeclared variable" + (if (1 != length(varNames)) "s " else " ")
     + fold(varNames,"",\acc,varName -> acc + (if (acc != "") ", " else "") + "\"" + varName + "\"")
     + " in \"" + bodyStr + "\"\n";
+}
+
+//returns true if expr is more complicated then operand access
+
+isComplicated(expr)
+{
+    switch(expr : Expr)
+    {
+        Arithmetic() :
+            switch (expr : Arithmetic)
+            {
+                Operand() : false;
+                default : true;
+            }
+        Update(array,index,new_value) : false;
+    }
 }
