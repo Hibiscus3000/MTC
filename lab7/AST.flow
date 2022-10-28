@@ -11,8 +11,8 @@ export
 		Var : (s : string);
 		Rational : (numerator : int, denominator : int);
 	algebraGrammar()  -> [PegOp];
-	buildSub(xs : [flow]) -> Sub;
-	buildDiv(xs : [flow]) -> Div;
+	buildSub(xs : [flow]) -> Expr;
+	buildDiv(xs : [flow]) -> Expr;
 	subDivPegActions =
 	{
 		tSub = setTree(defaultPegActions.t, "buildSub", buildSub);

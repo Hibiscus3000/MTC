@@ -4,6 +4,8 @@ export
 {
     ast2s(program : Program) -> string;
     checkErrors(program : Program) -> string;
+    body2s(body : Body,nesting : string) -> string;
+    relation2s(relation : Relation,underOperationPriority : int) -> string;
 }
 
 ast2s(program)

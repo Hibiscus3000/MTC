@@ -1,0 +1,194 @@
+import MTC/lab11/NeMo_AST;
+
+export
+{
+    StateSpace(varStates : [VarState]);
+    VarState(var : Var, value : Value);
+    Value ::= IntValue, ArrayValue, Undefined;
+        IntValue(i : int);
+        ArrayValue(indexValuePair : [Pair<Value,Value>]);
+        Undefined();
+    LabeledOperator ::= LabeledAssignment,LabeledTest;
+        LabeledTest(relation : Relation,if_goto : [int], else_goto : [int]);
+        LabeledAssignment(operator : Assignment, goto : [int]);
+    LabeledOperatorsSet(label : int, labeledOperators : [LabeledOperator]);
+    VMProgram(labeledOperatorsSets : [LabeledOperatorsSet]);
+    
+    NeMo2VNM(program : Program) -> VMProgram;
+}
+
+//////////////////////////////////////////////////////////////
+//// !!!!!PROGRAM MUST FIRST BE CHECKED FOR VALIDITY!!!!! ////
+//////////////////////////////////////////////////////////////
+
+NeMo2VNM(program)
+{
+    //stateSpace = StateSpace(fold(program.decls,[],\varStates,declaration ->
+    //    arrayPush(varStates,VarState(declaration.var,Undefined()))));
+    VMProgram(sortGotos(body2LabeledOperatorsSets(program.body,0)));
+}
+
+body2LabeledOperatorsSets(body, label)
+{
+    switch(body)
+    {
+        Assignment(varApply,expr) : [LabeledOperatorsSet(label,[LabeledAssignment(body,[label + 1])])];
+        Test() : test2LabeledOperatorsSet(body,label);
+        Sequence(bodies) : 
+        {
+            add = ref 0;
+            fold(bodies,[],\labeledOperatorsSets,body1 ->
+            {
+                bodyAsLabeledOpsSets = body2LabeledOperatorsSets(body1,label + ^add);
+                add := ^add + length(bodyAsLabeledOpsSets);
+                concat(labeledOperatorsSets,bodyAsLabeledOpsSets);
+            });
+        }
+        Choice(bodies) : choice2LabeledOpSet(bodies,label);
+        Iteration(sequence) : addLastOperatorsGoto(body2LabeledOperatorsSets(sequence,label),label);
+        Function() : [];
+    }
+}   
+
+choice2LabeledOpSet(bodies,label)
+{
+    add = ref 0;
+    choicesEndsLabels = ref [];
+    initialSetOnlyLabeledOperators = ref [];
+    labeledOpsSets = fold(bodies,[],\labeledOperatorsSets,body ->
+    {
+        bodyAsLabeledOpsSets = body2LabeledOperatorsSets(body,label + ^add);
+        bodyAsLabeledOpsSetsLength = length(bodyAsLabeledOpsSets);
+        add := ^add + bodyAsLabeledOpsSetsLength;
+        if (1 != bodyAsLabeledOpsSetsLength)
+            refArrayPush(choicesEndsLabels,label + ^add - 1)
+        else
+            refArrayPush(initialSetOnlyLabeledOperators,
+                if (0 != length(labeledOperatorsSets)) length(labeledOperatorsSets[0].labeledOperators) else 0);
+        headLabeledOpsSet = bodyAsLabeledOpsSets[0];
+        tailLabeledOpsSets = removeIndex(bodyAsLabeledOpsSets,0);
+        extendedInitialSet = LabeledOperatorsSet(label,
+            fold(headLabeledOpsSet.labeledOperators,
+                if (0 != length(labeledOperatorsSets)) labeledOperatorsSets[0].labeledOperators else [],
+                \labeledOperators,labeledOperator -> arrayPush(labeledOperators,labeledOperator)));
+        concat(concat([extendedInitialSet],removeIndex(labeledOperatorsSets,0)),tailLabeledOpsSets);
+    });
+    currentChoice = ref 0;
+    currentOnlyOperator = ref 0;
+    initialSet = labeledOpsSets[0];
+    concat(
+        [LabeledOperatorsSet(initialSet.label,foldi(initialSet.labeledOperators,[],\i,labeledOps,labeledOp ->
+        {
+            if (^initialSetOnlyLabeledOperators[^currentOnlyOperator] == i)
+            {
+                currentOnlyOperator := ^currentOnlyOperator + 1;
+                arrayPush(labeledOps,changeGotoLabeledOperator(labeledOp,[label + length(labeledOpsSets)]))
+            }
+            else
+                arrayPush(labeledOps,labeledOp);
+        }))],
+        fold(removeIndex(labeledOpsSets,0),[],\opSets,opSet ->
+        {
+            if (^choicesEndsLabels[^currentChoice] == opSet.label)
+            {
+                currentChoice := ^currentChoice + 1;
+                arrayPush(opSets,changeGotoLabeledOperatorsSet(opSet,[label + length(labeledOpsSets)]))
+            }
+            else
+                arrayPush(opSets,opSet);
+        }));
+}
+
+test2LabeledOperatorsSet(test,label)
+{
+    switch (test : Test)
+    {
+        SimpleTest(relation) : [LabeledOperatorsSet(label,[LabeledTest(relation,[label + 1],[])])];
+        While(relation,body) :
+        {
+            bodyAsLabeledOperatorsSets = changeLastOperatorsSetGoto(body2LabeledOperatorsSets(body,label + 1),
+                [label]);
+            concat([LabeledOperatorsSet(label,[LabeledTest(relation,[label + 1],
+                [label + length(bodyAsLabeledOperatorsSets) + 1])])],bodyAsLabeledOperatorsSets);
+        }
+        If(relation,op_if,op_else) :
+        {
+            opIfAsLabeledOperatorsSets = body2LabeledOperatorsSets(op_if,label + 1);
+            opElseAsLabeledOperatorsSets = if (1 == length(op_else))
+                body2LabeledOperatorsSets(op_else[0],label + length(opIfAsLabeledOperatorsSets) + 1)
+            else
+                [];
+            concat(concat([LabeledOperatorsSet(label,[LabeledTest(relation,[label + 1],
+                [label + length(opIfAsLabeledOperatorsSets) + 1])])],
+                    changeLastOperatorsSetGoto(opIfAsLabeledOperatorsSets,
+                        [label + length(opIfAsLabeledOperatorsSets) + length(opElseAsLabeledOperatorsSets) + 1])),
+                opElseAsLabeledOperatorsSets);
+        }
+    }
+}
+
+addGotoToLabeledOperator(labeledOperator, newGoto)
+{
+    switch(labeledOperator : LabeledOperator)
+    {
+        LabeledAssignment(assignment,goto) : LabeledAssignment(assignment,arrayPush(goto,newGoto));
+        LabeledTest(test,if_goto,else_goto) : LabeledTest(test,
+            if (0 == length(if_goto)) if_goto else arrayPush(if_goto,newGoto),
+            if (0 == length(else_goto)) else_goto else arrayPush(else_goto,newGoto));
+    }
+}
+
+changeGotoLabeledOperator(labeledOperator, newGoto)
+{
+    switch(labeledOperator : LabeledOperator)
+    {
+        LabeledAssignment(assignment,goto) : LabeledAssignment(assignment,newGoto);
+        LabeledTest(test,if_goto,else_goto) : LabeledTest(test,
+            if (0 == length(if_goto)) if_goto else newGoto,
+            if (0 == length(else_goto)) else_goto else newGoto);
+    }
+}
+
+addGotoToLabeledOperatorsSet(labeledOperatorsSet, newGoto)
+{
+    LabeledOperatorsSet(labeledOperatorsSet.label,fold(labeledOperatorsSet.labeledOperators,[],
+        \labeledOperators,labeledOperator ->
+            arrayPush(labeledOperators,addGotoToLabeledOperator(labeledOperator,newGoto))));
+}
+
+changeGotoLabeledOperatorsSet(labeledOperatorsSet, newGoto)
+{
+    LabeledOperatorsSet(labeledOperatorsSet.label,fold(labeledOperatorsSet.labeledOperators,[],
+        \labeledOperators,labeledOperator ->
+            arrayPush(labeledOperators,changeGotoLabeledOperator(labeledOperator,newGoto))));
+}
+
+changeLastOperatorsSetGoto(operatorsSets, newGoto)
+{
+    lastSet = operatorsSets[length(operatorsSets) - 1];
+    arrayPush(removeIndex(operatorsSets,length(operatorsSets) - 1),changeGotoLabeledOperatorsSet(lastSet,newGoto));
+}
+
+addLastOperatorsGoto(operatorsSets,newGoto)
+{
+    lastSet = operatorsSets[length(operatorsSets) - 1];
+    arrayPush(removeIndex(operatorsSets,length(operatorsSets) - 1),addGotoToLabeledOperatorsSet(lastSet,newGoto));
+}
+
+sortGotos(labeledOperatorsSets)
+{
+    fold(labeledOperatorsSets,[],\labeledOpsSets,labeledOperatorsSet ->
+        arrayPush(labeledOpsSets,LabeledOperatorsSet(labeledOperatorsSet.label,
+            fold(labeledOperatorsSet.labeledOperators,[],\labeledOps,labeledOperator
+                -> arrayPush(labeledOps,
+                    sortGotoLabeledOperator(labeledOperator))))));
+}
+
+sortGotoLabeledOperator(labeledOperator)
+{
+    switch (labeledOperator : LabeledOperator)
+    {
+        LabeledAssignment(assignment,goto) : LabeledAssignment(assignment,sort(goto));
+        LabeledTest(test,if_goto,else_goto) : LabeledTest(test,sort(if_goto),sort(else_goto));
+    }
+}
