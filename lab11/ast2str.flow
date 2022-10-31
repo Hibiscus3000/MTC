@@ -2,19 +2,25 @@ import MTC/lab11/get_type;
 
 export
 {
+    ast2sCheckRs(program : Program) -> string;
     ast2s(program : Program) -> string;
     checkErrors(program : Program) -> string;
     body2s(body : Body,nesting : string) -> string;
     relation2s(relation : Relation,underOperationPriority : int) -> string;
 }
 
-ast2s(program)
+ast2sCheckRs(program)
 {
     errorMsg = checkErrors(program);
     if ("" == errorMsg)
-        declarations2s(program.decls) + "\n" + body2s(program.body,"")
+        ast2s(program)
     else
         errorMsg;
+}
+
+ast2s(program)
+{
+    declarations2s(program.decls) + "\n" + body2s(program.body,"");
 }
 
 declarations2s(decls : [Declaration])
