@@ -1,9 +1,10 @@
-import MTC/lab12/vm2s;
+import MTC/lab12/NVM2s;
+import MTC/lab12/NeMo2NVM;
 
 main()
 {
-    nemoProg = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/lab11/NeMo_program_example_5.nem");
+    nemoProg = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/5.nem");
     println(ast2s(nemoProg) + "\n");
-    println(labeledOperators2s(body2LabeledOperators(nemoProg.body)));
+    println(NVM2s(NeMoFile2NVM("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/5.nem")));
     quit(0);
 }

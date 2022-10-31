@@ -2,7 +2,7 @@ import MTC/lab11/ast2str;
 
 main()
 {
-    result = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/lab11/NeMo_program_example_5.nem");
-    println(ast2s(result));
+    result = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab11/NeMo_program_example_2.nem");
+    println(ast2sCheckRs(result));
     quit(0);
 }

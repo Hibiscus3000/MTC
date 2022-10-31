@@ -51,6 +51,7 @@ relation_atom = arithmetic:a1 ws* "<=" ws* arithmetic:a2 {LesserEquals(:a1,:a2)}
     | arithmetic:a1 ws* '<' ws* arithmetic:a2 {Lesser(:a1,:a2)}
     | arithmetic:a1 ws* '>' ws* arithmetic:a2 {Greater(:a1,:a2)}
     | arithmetic:a1 ws* "==" ws* arithmetic:a2 {Equals(:a1,:a2)}
+    | arithmetic:a1 ws* "!=" ws* arithmetic:a2 {NotEquals(:a1,:a2)}
     | '(' ws* or:or ws* ')' {:or};
 
 operand = int | apply_var;

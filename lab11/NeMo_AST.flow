@@ -39,12 +39,13 @@ export
         Or(r1 : Relation, r2 : Relation);
         And(r1 : Relation, r2 : Relation);
         Not(r : Relation);
-    RelationAtom ::= LesserEquals, GreaterEquals, Lesser, Greater, Equals;
+    RelationAtom ::= LesserEquals, GreaterEquals, Lesser, Greater, Equals, NotEquals;
         LesserEquals(a1 : Arithmetic, a2 : Arithmetic);
         GreaterEquals(a1 : Arithmetic, a2 : Arithmetic);
         Lesser(a1 : Arithmetic, a2 : Arithmetic);
         Greater(a1 : Arithmetic, a2 : Arithmetic);
         Equals(a1 : Arithmetic, a2 : Arithmetic);
+        NotEquals(a1 : Arithmetic, a2 : Arithmetic);
 
     Operand ::= Int, VarApply;    
     VarApply ::= Var, Apply;

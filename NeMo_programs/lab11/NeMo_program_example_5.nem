@@ -1,0 +1,15 @@
+VAR v : INT;
+VAR x : INT;
+VAR APP : INT;
+VAR UUUU : INT;
+VAR U : INT;
+
+{
+	{
+		{
+			v := 1;
+			v := v * 2;
+		} U
+		v := APP
+	};
+}

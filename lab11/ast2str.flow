@@ -223,6 +223,7 @@ relationAtom2s(relationAtom)
         Lesser(a1,a2) : arithmetic2s(a1,0) + " < " + arithmetic2s(a2,0);
         Greater(a1,a2) : arithmetic2s(a1,0) + " > " + arithmetic2s(a2,0);
         Equals(a1,a2) : arithmetic2s(a1,0) + " == " + arithmetic2s(a2,0);
+        NotEquals(a1,a2) : arithmetic2s(a1,0) + " != " + arithmetic2s(a2,0);
     }
 }
 
@@ -467,6 +468,7 @@ checkRelationAtom(relationAtom, declsTree : Tree<Var,Type>) -> Pair<[string],[st
         Lesser(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
         Greater(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
         Equals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        NotEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
     }
 }
 

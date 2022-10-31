@@ -1,0 +1,35 @@
+import MTC/lab12/NVM;
+import MTC/lab11/ast2str;
+
+export
+{
+    NVM2s(vmProgram : VMProgram) -> string;
+}
+
+NVM2s(vmProgram)
+{
+    fold(tree2pairs(vmProgram.labeledOperatorsTree),"",
+        \acc,labeledOperatorsSet -> acc + labeledOperatorsSet2s(labeledOperatorsSet));
+}
+
+labeledOperatorsSet2s(labeledOperatorsSet : Pair<int,[Operator]>)
+{
+    label = labeledOperatorsSet.first;
+    fold(labeledOperatorsSet.second,"",\acc,operator -> acc + i2s(label) + ": " + operator2s(operator) + "\n");
+}
+
+operator2s(operator)
+{
+    switch(operator : Operator)
+    {
+        OAssignment(assignment,goto) : body2s(assignment,"") + " goto " + goto2s(goto);
+        OTest(relation,if_goto,else_goto) : 
+            "if (" + relation2s(relation,0) + ") then " + goto2s(if_goto) + " else " + goto2s(else_goto);
+        OEmpty(goto) : goto2s(goto);
+    }
+}
+
+goto2s(goto)
+{
+    "{" + foldi(goto,"",\i,acc,gt -> acc + (if (i > 0) ", " else "") + i2s(gt)) + "}";
+}
