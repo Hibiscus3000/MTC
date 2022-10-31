@@ -1,34 +1,39 @@
-import MTC/lab12/NVM;
+import MTC/lab12/NeMo2VM;
 import MTC/lab11/ast2str;
 
 export
 {
-    vm2s(vmProgram : VMProgram) -> string;
+    //vm2s(vmProgram : VMProgram) -> string;
+    labeledOperators2s(labeledOperators : [LabeledOperator]) -> string;
 }
 
-vm2s(vmProgram)
+/*vm2s(vmProgram)
 {
     fold(vmProgram.labeledOperatorsSets,"",
         \acc,labeledOperatorsSet -> acc + labeledOperatorsSet2s(labeledOperatorsSet));
-}
+}*/
 
-labeledOperatorsSet2s(labeledOperatorsSet)
+labeledOperators2s(labeledOperators)
 {
-    fold(labeledOperatorsSet.labeledOperators,"",
-        \acc,labeledOperator -> acc + i2s(labeledOperatorsSet.label) + ": " + labeledOperator2s(labeledOperator) + "\n")
+    fold(labeledOperators,"",
+        \acc,labeledOperator -> acc + labeledOperator2s(labeledOperator) + "\n");
 }
 
 labeledOperator2s(labeledOperator)
 {
-    switch(labeledOperator : LabeledOperator)
+    i2s(labeledOperator.label) + ": " + 
+    switch(labeledOperator.operator : Operator)
     {
-        LabeledAssignment(assignment,goto) : body2s(assignment,"") + " goto " + goto2s(goto);
-        LabeledTest(relation,if_goto,else_goto) : 
-            "if (" + relation2s(relation,0) + ") then " + goto2s(if_goto) + " else " + goto2s(else_goto);
+        LabeledAssignment(assignment,goto) : body2s(assignment,"") + " goto " +
+            goto2s(goto,labeledOperator.iterationGoto);
+        LabeledTest(relation,if_goto,else_goto,iterationGotoAttachedTo) : 
+            "if (" + relation2s(relation,0) + ") then " +
+                goto2s(if_goto, if (0 == iterationGotoAttachedTo || 2 == iterationGotoAttachedTo) labeledOperator.iterationGoto else []) +
+                " else " + goto2s(else_goto,if (1 == iterationGotoAttachedTo  || 2 == iterationGotoAttachedTo) labeledOperator.iterationGoto else []);
     }
 }
 
-goto2s(goto)
+goto2s(goto,iterationGoto)
 {
-    "{" + foldi(goto,"",\i,acc,gt -> acc + (if (i > 0) ", " else "") + i2s(gt)) + "}";
+    "{" + foldi(iterationGoto,i2s(goto),\i,acc,gt -> acc + ", " + i2s(gt)) + "}";
 }

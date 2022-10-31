@@ -4,7 +4,6 @@ main()
 {
     nemoProg = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/lab11/NeMo_program_example_5.nem");
     println(ast2s(nemoProg) + "\n");
-    vmProg = NeMo2VNM(nemoProg);
-    println(vm2s(vmProg));
+    println(labeledOperators2s(body2LabeledOperators(nemoProg.body)));
     quit(0);
 }
