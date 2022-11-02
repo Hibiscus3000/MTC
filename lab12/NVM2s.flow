@@ -4,15 +4,17 @@ import MTC/lab11/ast2str;
 export
 {
     NVM2s(vmProgram : VMProgram) -> string;
+    labeledOperatorsSet2s(labeledOperatorsSet : Pair<int,[Operator]>) -> string;
 }
 
 NVM2s(vmProgram)
 {
+    declarations2s(vmProgram.declarations) +
     fold(tree2pairs(vmProgram.labeledOperatorsTree),"",
         \acc,labeledOperatorsSet -> acc + labeledOperatorsSet2s(labeledOperatorsSet));
 }
 
-labeledOperatorsSet2s(labeledOperatorsSet : Pair<int,[Operator]>)
+labeledOperatorsSet2s(labeledOperatorsSet)
 {
     label = labeledOperatorsSet.first;
     fold(labeledOperatorsSet.second,"",\acc,operator -> acc + i2s(label) + ": " + operator2s(operator) + "\n");

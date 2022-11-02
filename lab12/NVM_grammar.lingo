@@ -1,4 +1,5 @@
-program = declarations:decls sequence:sequence ws* {Program(:decls,:sequence)};
+nvm = declarations:decls ws* (assignment | test)*:operators
+    {VMProgram(:decls,buildLabeledOperatorsTree(:operators))};
 
 declarations = '{' declaration*:decls '}' {:decls} | declaration*;
 declaration = "VAR" ws var:v ws* ':' ws* type:t ';' ws+ {Declaration(:v,:t)};
@@ -6,21 +7,11 @@ type = "INT" {IntType()}
     | '[' type:ind ws+ "ARRAY" ws+ "OF" ws+ type:val ']' {ArrayType(:ind,:val)}
     | '[' type:t ']' {ArrayType(:t,IntType())};
 
-body_seq = body | sequence;
-body = function
-    | test
-    | assignment
-    | '{' ws* body_seq:b choice+:chs ws* '}' {buildChoice(:b,:chs)}
-    | iteration;
-choice = ws+ 'U' ws+ body_seq:b {:b};
-sequence = '{' ws* subsequence*:ss '}' {Sequence(:ss)};
-iteration = '{' ws* subsequence+:ss "}*" {Iteration(Sequence(:ss))};
-subsequence = body:b ';' ws+ {:b} | sequence:s ws+ {:s};
+assignment = int:label ws* ':' ws* apply_var:av ws* ":=" expr:e
+    ws* ("goto" | "->") goto:goto {GrammarAssignment(:label,Assignment(:av,:e),:goto)};
+test = int:label ws* ':' ws* "if" ws* '(' ws* or:or ws* ')' ws*
+    "then" goto:op_if "else" goto:op_else {GrammarTest(:label,:or,:op_if,:op_else)};
 
-function = print;
-print = "print(" expr:e ')' {Print(:e)};
-
-assignment = apply_var:av ws* ":=" expr:e {Assignment(:av,:e)};
 expr = update | arithmetic;
 
 arithmetic = sub:s ws* '+' ws* arithmetic:a {Add(:s,:a)} | sub;
@@ -37,12 +28,6 @@ apply = ws* "APP(" (update | apply_var):array ',' ws? expr:index ')' {Apply(:arr
 update = ws* "UPD(" (update | apply_var):array ',' ws? expr:index ',' ws? expr:new_value ')'
     {Update(:array,:index,:new_value)}; 
 
-test = simple_test | while | if;
-simple_test = '(' ws* or:or ws* ") ?" {SimpleTest(:or)};
-while = "while" ws+ '(' or:or ')' ws+ body_seq:b {While(:or,:b)};
-if = "if" ws+ '(' or:or ')' ws+ body_seq:if else?:else {If(:or,:if,:else)};
-else = ws* "else" ws+ body_seq:b {:b};
-
 or = and:and ws+ "||" ws+ or:or {Or(:and,:or)} | and;
 and = not:not ws+ "&&" ws+ and:and {And(:not,:and)} | not;
 not = '~' ws* relation_atom:ra {Not(:ra)} | relation_atom;
@@ -53,6 +38,9 @@ relation_atom = arithmetic:a1 ws* "<=" ws* arithmetic:a2 {LesserEquals(:a1,:a2)}
     | arithmetic:a1 ws* "==" ws* arithmetic:a2 {Equals(:a1,:a2)}
     | arithmetic:a1 ws* "!=" ws* arithmetic:a2 {NotEquals(:a1,:a2)}
     | '(' ws* or:or ws* ')' {:or};
+
+goto = ws* '{' ws* int?:head sub_goto*:tail ws* '}' ws* {GrammarGoto(concat(:head,:tail))};
+sub_goto = ws* ',' ws* int:i {:i};
 
 operand = int | apply_var;
 apply_var = apply | var;

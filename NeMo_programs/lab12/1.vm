@@ -1,0 +1,10 @@
+0: m:=0 goto{10}
+10: m:=m+1 goto{10, 15}
+10: m:=m-1 goto{10, 15}
+15: if (m>=0) then{20} else{15}
+20: y:=m*m goto{21}
+21: if (y<=n) then{22} else{}
+22: y:=y+m goto{23}
+23: y:=y+m goto{24}
+24: y:=y+1 goto{30}
+30: if (y>n) then{12345} else{}

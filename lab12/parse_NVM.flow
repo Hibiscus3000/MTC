@@ -1,0 +1,140 @@
+import MTC/lab12/NVM2s;
+import MTC/lab11/ast2str;
+
+export
+{
+    s2NVM(nvm : string) -> VMProgram;
+    s2NVMCheckRs(nvm : string) -> Maybe<VMProgram>;
+    parseNVMFile(filename : string) -> VMProgram;
+    parseNVMFileCheckRs(filename : string) -> Maybe<VMProgram>;
+    checkNVMRs(vmProgram : VMProgram) -> bool;
+
+    GrammarOperator ::= GrammarAssignment, GrammarTest;
+        GrammarAssignment(label : Int,assignment : Assignment, goto : GrammarGoto);
+        GrammarTest(label : Int, relation : Relation, if_goto : GrammarGoto, else_goto : GrammarGoto);
+    GrammarGoto(goto : [Int]);
+
+    buildLabeledOperatorsTree(xs : [flow]) -> Tree<int,[Operator]>;
+
+}
+
+NVMGrammarOp : ref Maybe<[PegOp]> = ref None();
+
+specialPegActions =
+{
+	tSub = setTree(defaultPegActions.t, "buildSub", buildSub);
+	tDiv = setTree(tSub,"buildDiv",buildDiv);
+    tLabeledOperatorsTree = setTree(tDiv,"buildLabeledOperatorsTree",buildLabeledOperatorsTree);
+    SemanticActions(tLabeledOperatorsTree);
+}
+
+buildLabeledOperatorsTree(xs)
+{
+    fold(xs[0],makeTree(),\labeledOperatorsTree,grammarOperator ->
+    {
+        switch(grammarOperator : GrammarOperator)
+        {
+            GrammarAssignment(label,assignment,goto) : 
+                setTree(labeledOperatorsTree,label.i,arrayPush(lookupTreeDef(labeledOperatorsTree,label.i,[]),
+                    OAssignment(assignment,Int2intArray(goto.goto))));
+            GrammarTest(label,relation,if_goto,else_goto) :
+                setTree(labeledOperatorsTree,label.i,arrayPush(lookupTreeDef(labeledOperatorsTree,label.i,[]),
+                    OTest(relation,Int2intArray(if_goto.goto),Int2intArray(else_goto.goto))));
+        }
+    });
+}
+
+Int2intArray(arrayInt : [Int])
+{
+    fold(arrayInt,[],\acc,i -> arrayPush(acc,i.i));
+}
+
+NVMGrammar()
+{
+	onlyOnce(NVMGrammarOp, \ -> {
+		compilePegGrammar("#include MTC/lab12/NVM_grammar.lingo");
+	});
+}
+
+s2NVM(nvm)
+{
+    parsic(NVMGrammar(),nvm,specialPegActions);
+}
+
+s2NVMCheckRs(nvm)
+{
+    vmProgram = s2NVM(nvm);
+    if (checkNVMRs(vmProgram))
+        None()
+    else
+        Some(vmProgram);
+}
+
+parseNVMFile(filename)
+{
+    s2NVM(getFileContent(filename));
+}
+
+parseNVMFileCheckRs(filename)
+{
+    s2NVMCheckRs(getFileContent(filename));
+}
+
+checkNVMRs(vmProgram)
+{
+    declsCheck = checkDeclaration(vmProgram.declarations);
+    errors = declsCheck.first + checkOperators(tree2pairs(vmProgram.labeledOperatorsTree),declsCheck.second);
+    errorMsg = 
+    if ("" != errors)
+        "INVALID PROGRAM!!!\n" + errors
+    else
+        "";
+    if ("" != errorMsg)
+    {
+        println(errorMsg);
+        true;
+    }
+    else
+        false;
+}
+
+checkOperators(labelOperatorsPairs : [Pair<int,[Operator]>],declsTree)
+{
+    fold(labelOperatorsPairs,"",\accRStr,labelOperatorsPair ->
+        accRStr + fold(labelOperatorsPair.second,"",\curRStr,operator ->
+            checkOperator(labelOperatorsPair.first,operator,declsTree) + "\n"));
+}
+
+checkOperator(label,operator,declsTree)
+{
+    switch (operator : Operator)
+    {
+        OTest(relation,if_goto,else_goto) : formTestErrorsMsg(relation,declsTree,"(",")");
+        OAssignment(assignment, goto) :
+        {
+            varApply = assignment.varApply;
+            expr = assignment.expr;
+            exprErrorsPair = checkExpr(expr,declsTree);
+            exprUndeclaredVars = exprErrorsPair.second;
+            varApplyErrorsPair = checkOperand(varApply,declsTree);
+            varApplyUndeclaredVariables = varApplyErrorsPair.second;
+            undeclaredVariables = concat(varApplyUndeclaredVariables,exprUndeclaredVars);
+            typeMismatches = concat(varApplyErrorsPair.first,exprErrorsPair.first);
+            if (0 != length(undeclaredVariables))
+                formUndeclaredVarsMsg(undeclaredVariables,labeledOperatorsSet2s(Pair(label,[operator])))
+            else
+            {
+                (if (isComplicated(expr) && !isInt(expr,declsTree))
+                    "Right side of \"" + labeledOperatorsSet2s(Pair(label,[operator])) + "\" is not INT\n"
+                else
+                    (if (getExprType(varApply,declsTree) != getExprType(expr,declsTree))
+                        "Types of right and left sides of assignment \"" + labeledOperatorsSet2s(Pair(label,[operator]))
+                            + "\" do not match\n"
+                    else
+                        ""))
+                + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n");
+            }
+        }
+        OEmpty(goto) : "";
+    }
+}

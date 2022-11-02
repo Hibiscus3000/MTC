@@ -2,7 +2,7 @@ import lingo/pegcode/driver;
 
 export
 {
-    Program(decls : [Declaration], body : Body);
+    Program(declarations : [Declaration], body : Body);
 
     Declaration(var : Var, type : Type);
     Type ::= IntType, ArrayType;
@@ -54,6 +54,9 @@ export
     
     parseNeMo(nemoProg : string) -> Program;
     parseNeMoFile(filename : string) -> Program;
+
+    buildSub(xs : [flow]) -> Arithmetic;
+    buildDiv(xs : [flow]) -> Arithmetic;
 }
 
 NeMoGrammarOp : ref Maybe<[PegOp]> = ref None();
@@ -66,12 +69,12 @@ subDivChoicePegActions =
 	SemanticActions(tChoice);
 }
 
-buildSub(xs : [flow]) -> Arithmetic
+buildSub(xs)
 {
     fold(xs[1],xs[0],\acc,x -> Sub(acc,x));
 }
 
-buildDiv(xs : [flow]) -> Arithmetic
+buildDiv(xs)
 {
     fold(xs[1],xs[0],\acc,x -> Div(acc,x));    
 }

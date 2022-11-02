@@ -1,10 +1,12 @@
-import MTC/lab12/NVM2s;
 import MTC/lab12/NeMo2NVM;
+import MTC/lab12/parse_NVM;
 
 main()
 {
-    nemoProg = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/5.nem");
-    println(ast2s(nemoProg) + "\n");
-    println(NVM2s(NeMoFile2NVM("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/5.nem")));
+    //nemoProg = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/7.nem");
+    //println(ast2s(nemoProg) + "\n");
+    //vmProg = NeMoProg2NVM(nemoProg);
+    vmProg = parseNVMFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/1.vm");
+    println(NVM2s(vmProg));
     quit(0);
 }

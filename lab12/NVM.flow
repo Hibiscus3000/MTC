@@ -9,12 +9,49 @@ export
         ArrayValue(indexValuePair : [Pair<Value,Value>]);
         Undefined();
     LabeledOperator ::= LabeledAssignment,LabeledTest,LabeledEmpty;
-        LabeledTest(label : int, relation : Relation,if_goto : int, else_goto : int);
+        LabeledTest(label : int, relation : Relation,if_goto : [int], else_goto : [int]);
         LabeledAssignment(label : int, assignment : Assignment, goto : [int]);
         LabeledEmpty(label : int, goto : [int]);
     Operator ::= OAssignment,OTest,OEmpty;
         OTest(relation : Relation,if_goto : [int], else_goto : [int]);
         OAssignment(assignment : Assignment, goto : [int]);
         OEmpty(goto : [int]);
-    VMProgram(varStates : [VarState], labeledOperatorsTree : Tree<int,[Operator]>);
+    VMProgram(declarations : [Declaration], labeledOperatorsTree : Tree<int,[Operator]>);
+
+    makeLabeledOperatorsTree(labeledOperators : [LabeledOperator],
+        emptiesLabelsAndGotosTree: Tree<int,[int]>) -> Tree<int,[Operator]>;
+}
+
+makeLabeledOperatorsTree(labeledOperators,emptiesLabelsAndGotosTree)
+{
+    fold(labeledOperators,makeTree(),\almoustNoEmptiesTree,labeledOperator ->
+    {
+        switch(labeledOperator : LabeledOperator)
+        {
+            LabeledAssignment(label,assignment,goto) : 
+                setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
+                    OAssignment(assignment,replaceGoto(goto,emptiesLabelsAndGotosTree))));
+            LabeledTest(label,relation,if_goto,else_goto) :
+                setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
+                    OTest(relation,replaceGoto(if_goto,emptiesLabelsAndGotosTree),
+                        replaceGoto(else_goto,emptiesLabelsAndGotosTree))));
+            LabeledEmpty(label,goto) :
+                if (isSome(lookupTree(emptiesLabelsAndGotosTree,label)))
+                    almoustNoEmptiesTree
+                else
+                    setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
+                        OEmpty(replaceGoto(goto,emptiesLabelsAndGotosTree))));
+        }
+    });
+}
+
+replaceGoto(goto, emptiesLabelsAndGotosTree)
+{
+    removeDuplicates(sort(fold(goto,[],\acc,gt -> concat(acc,eitherMap(lookupTree(emptiesLabelsAndGotosTree,gt),
+            \foundGoto -> replaceGoto(foundGoto,emptiesLabelsAndGotosTree),[gt])))));
+}
+
+removeDuplicates(goto)
+{
+    fold(goto,[],\acc,gt -> if (lastElement(acc,-1) != gt) arrayPush(acc,gt) else acc);
 }

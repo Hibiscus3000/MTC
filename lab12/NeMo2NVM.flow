@@ -1,17 +1,31 @@
 import MTC/lab12/NVM;
+import MTC/lab11/ast2str;
 
 export
 {
     NeMoProg2NVM(program : Program) -> VMProgram;
+    NeMoProg2NVMCheckRs(program : Program) -> Maybe<VMProgram>;
     NeMoFile2NVM(filename : string) -> VMProgram;
+    NeMoFile2NVMCheckRs(filename : string) -> Maybe<VMProgram>;
     NeMoStr2NVM(nemo : string) -> VMProgram;
+    NeMoStr2NVMCheckRs(nemo : string) -> Maybe<VMProgram>;
 }
 
 NeMoProg2NVM(program)
 {
-    varStates = fold(program.decls,[],\varStates,declaration ->
-        arrayPush(varStates,VarState(declaration.var,Undefined())));
-    VMProgram(varStates,body2LabeledOperatorsTree(program.body));
+    VMProgram(program.declarations,body2LabeledOperatorsTree(program.body));
+}
+
+NeMoProg2NVMCheckRs(program)
+{
+    errors = checkErrors(program);
+    if ("" != errors)
+    {
+        println(errors);
+        None();
+    }
+    else
+        Some(NeMoProg2NVM(program));
 }
 
 NeMoFile2NVM(filename)
@@ -19,20 +33,30 @@ NeMoFile2NVM(filename)
     NeMoProg2NVM(parseNeMoFile(filename));
 }
 
+NeMoFile2NVMCheckRs(filename)
+{
+    NeMoProg2NVMCheckRs(parseNeMoFile(filename));
+}
+
 NeMoStr2NVM(nemo)
 {
     NeMoProg2NVM(parseNeMo(nemo));
 }
 
+NeMoStr2NVMCheckRs(nemo)
+{
+    NeMoProg2NVMCheckRs(parseNeMo(nemo));
+}
+
 body2LabeledOperatorsTree(body)
 {
     labeledOperators = body2LabeledOperators1(body,0,None());
-    getRidOfEmpties(labeledOperators);
+    makeLabeledOperatorsTree(labeledOperators,getEmptiesLabelsAndGotosTree(labeledOperators));
 }
 
-getRidOfEmpties(labeledOperators)
+getEmptiesLabelsAndGotosTree(labeledOperators)
 {
-    emptiesLabelsAndGotosTree = foldi(labeledOperators,makeTree(),\i,emptiesLabelsAndReplacementsTree,labeledOperator ->
+    foldi(labeledOperators,makeTree(),\i,emptiesLabelsAndReplacementsTree,labeledOperator ->
         {
             switch(labeledOperator : LabeledOperator)
             {
@@ -46,38 +70,6 @@ getRidOfEmpties(labeledOperators)
                 default : emptiesLabelsAndReplacementsTree;
             }
         });
-    
-    fold(labeledOperators,makeTree(),\almoustNoEmptiesTree,labeledOperator ->
-    {
-        switch(labeledOperator : LabeledOperator)
-        {
-            LabeledAssignment(label,assignment,goto) : 
-                setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
-                    OAssignment(assignment,replaceGoto(goto,emptiesLabelsAndGotosTree))));
-            LabeledTest(label,relation,if_goto,else_goto) :
-                setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
-                    OTest(relation,replaceGoto([if_goto],emptiesLabelsAndGotosTree),
-                        replaceGoto([else_goto],emptiesLabelsAndGotosTree))));
-            LabeledEmpty(label,goto) :
-                if (isSome(lookupTree(emptiesLabelsAndGotosTree,label)))
-                    almoustNoEmptiesTree
-                else
-                    setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
-                        OEmpty(replaceGoto(goto,emptiesLabelsAndGotosTree))));
-        }
-    });
-}
-
-replaceGoto(goto,emptiesLabelsAndGotosTree)
-{
-    removeDuplicates(sort(fold(goto,[],\acc,gt -> if (-1 ==gt) acc else
-        concat(acc,eitherMap(lookupTree(emptiesLabelsAndGotosTree,gt),
-            \foundGoto -> replaceGoto(foundGoto,emptiesLabelsAndGotosTree),[gt])))));
-}
-
-removeDuplicates(goto)
-{
-    fold(goto,[],\acc,gt -> if (lastElement(acc,-2) != gt) arrayPush(acc,gt) else acc);
 }
 
 body2LabeledOperators1(body : Body, label, choiceWhileGoto : Maybe<int>) -> [LabeledOperator]
@@ -130,13 +122,13 @@ test2LabeledOperators(test, label, choiceWhileGoto : Maybe<int>)
 {
     switch (test : Test)
     {
-        SimpleTest(relation) : [LabeledTest(label,relation,label + 1,-1),
+        SimpleTest(relation) : [LabeledTest(label,relation,[label + 1],[]),
             LabeledEmpty(label + 1,[either(choiceWhileGoto,label + 2)])]
         While(relation,body) :
         {
             bodyAsLabeledOperators = body2LabeledOperators1(body,label + 1,Some(label));
             bodyLength = length(bodyAsLabeledOperators);
-            concat([LabeledTest(label,relation,label + 1, if (0 != bodyLength) label + bodyLength + 1 else -1)],
+            concat([LabeledTest(label,relation,[label + 1], if (0 != bodyLength) [label + bodyLength + 1] else [])],
                 arrayPush(bodyAsLabeledOperators,
                     LabeledEmpty(label + bodyLength + 1,[either(choiceWhileGoto,label + bodyLength + 2)])));
         }
@@ -149,7 +141,7 @@ test2LabeledOperators(test, label, choiceWhileGoto : Maybe<int>)
                     body2LabeledOperators1(op_else[0],label + length(opIfAsLabeledOperators) + 1,Some(tailLabeledEmptyLabel))
                 else
                     [];
-            concat(concat([LabeledTest(label,relation,label + 1,label + length(opIfAsLabeledOperators) + 1)],
+            concat(concat([LabeledTest(label,relation,[label + 1],[label + length(opIfAsLabeledOperators) + 1])],
                     opIfAsLabeledOperators),arrayPush(opElseAsLabeledOperators,
                         LabeledEmpty(tailLabeledEmptyLabel,
                             [either(choiceWhileGoto,tailLabeledEmptyLabel + 1)])));
