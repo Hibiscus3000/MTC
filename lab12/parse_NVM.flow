@@ -9,11 +9,6 @@ export
     parseNVMFileCheckRs(filename : string) -> Maybe<VMProgram>;
     checkNVMRs(vmProgram : VMProgram) -> bool;
 
-    GrammarOperator ::= GrammarAssignment, GrammarTest;
-        GrammarAssignment(label : Int,assignment : Assignment, goto : GrammarGoto);
-        GrammarTest(label : Int, relation : Relation, if_goto : GrammarGoto, else_goto : GrammarGoto);
-    GrammarGoto(goto : [Int]);
-
     buildLabeledOperatorsTree(xs : [flow]) -> Tree<int,[Operator]>;
 
 }
@@ -30,23 +25,7 @@ specialPegActions =
 
 buildLabeledOperatorsTree(xs)
 {
-    fold(xs[0],makeTree(),\labeledOperatorsTree,grammarOperator ->
-    {
-        switch(grammarOperator : GrammarOperator)
-        {
-            GrammarAssignment(label,assignment,goto) : 
-                setTree(labeledOperatorsTree,label.i,arrayPush(lookupTreeDef(labeledOperatorsTree,label.i,[]),
-                    OAssignment(assignment,Int2intArray(goto.goto))));
-            GrammarTest(label,relation,if_goto,else_goto) :
-                setTree(labeledOperatorsTree,label.i,arrayPush(lookupTreeDef(labeledOperatorsTree,label.i,[]),
-                    OTest(relation,Int2intArray(if_goto.goto),Int2intArray(else_goto.goto))));
-        }
-    });
-}
-
-Int2intArray(arrayInt : [Int])
-{
-    fold(arrayInt,[],\acc,i -> arrayPush(acc,i.i));
+    makeLabeledOperatorsTree(xs[0],makeTree());
 }
 
 NVMGrammar()

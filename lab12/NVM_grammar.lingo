@@ -8,9 +8,9 @@ type = "INT" {IntType()}
     | '[' type:t ']' {ArrayType(:t,IntType())};
 
 assignment = int:label ws* ':' ws* apply_var:av ws* ":=" expr:e
-    ws* ("goto" | "->") goto:goto {GrammarAssignment(:label,Assignment(:av,:e),:goto)};
+    ws* ("goto" | "->") goto:goto {LabeledAssignment(:label,Assignment(:av,:e),:goto)};
 test = int:label ws* ':' ws* "if" ws* '(' ws* or:or ws* ')' ws*
-    "then" goto:op_if "else" goto:op_else {GrammarTest(:label,:or,:op_if,:op_else)};
+    "then" goto:op_if "else" goto:op_else {LabeledTest(:label,:or,:op_if,:op_else)};
 
 expr = update | arithmetic;
 
@@ -39,13 +39,14 @@ relation_atom = arithmetic:a1 ws* "<=" ws* arithmetic:a2 {LesserEquals(:a1,:a2)}
     | arithmetic:a1 ws* "!=" ws* arithmetic:a2 {NotEquals(:a1,:a2)}
     | '(' ws* or:or ws* ')' {:or};
 
-goto = ws* '{' ws* int?:head sub_goto*:tail ws* '}' ws* {GrammarGoto(concat(:head,:tail))};
+goto = ws* '{' ws* int?:head sub_goto*:tail ws* '}' ws* {concat(:head,:tail)};
 sub_goto = ws* ',' ws* int:i {:i};
 
-operand = int | apply_var;
+operand = int_const | apply_var;
 apply_var = apply | var;
 var = (letter (letter | digit)*)$v {Var($v)};
-int = digit+$d {Int(s2i($d))};
+int_const = int:int {Int(:int)};
+int = digit+$d {s2i($d)};
 letter = 'a' - 'z' | 'A' - 'Z' | '_';
 digit = ('0'-'9');
 ws = ' ' | '\t' | '\n' | '\r';
