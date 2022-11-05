@@ -3,15 +3,22 @@ import MTC/lab11/ast2str;
 
 export
 {
-    NVM2s(vmProgram : VMProgram) -> string;
+    NVM2s(vmProgram : Maybe<VMProgram>) -> string;
+    NVM2file(vmProgram : Maybe<VMProgram>,path : string) -> bool;
     labeledOperatorsSet2s(labeledOperatorsSet : Pair<int,[Operator]>) -> string;
+    operator2s(operator : Operator) -> string;
 }
 
 NVM2s(vmProgram)
 {
-    declarations2s(vmProgram.declarations) +
-    fold(tree2pairs(vmProgram.labeledOperatorsTree),"",
-        \acc,labeledOperatorsSet -> acc + labeledOperatorsSet2s(labeledOperatorsSet));
+    eitherMap(vmProgram,\vmProg -> declarations2s(vmProg.declarations) +
+    fold(tree2pairs(vmProg.labeledOperatorsTree),"",
+        \acc,labeledOperatorsSet -> acc + labeledOperatorsSet2s(labeledOperatorsSet)),"");
+}
+
+NVM2file(vmProgram,path)
+{
+    setFileContent(path,NVM2s(vmProgram));
 }
 
 labeledOperatorsSet2s(labeledOperatorsSet)

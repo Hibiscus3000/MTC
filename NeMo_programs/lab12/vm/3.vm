@@ -1,0 +1,5 @@
+VAR x : INT;
+0: x := 10 goto {1}
+1: if (x > 3 && x < 30) then {2} else {3}
+2: x := x - 7 goto {1}
+2: x := x + 20 goto {1}

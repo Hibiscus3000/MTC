@@ -1,0 +1,31 @@
+import MTC/lab12/NVM2s;
+import MTC/lab12/NeMo2NVM;
+
+export
+{
+    parseNeMo2NVMs(nemo : string) -> string;
+    parseNeMoFile2NVMs(path : string) -> string;
+    parseNeMo2NVMFile(nemo : string, path : string) -> bool;
+    parseNeMoFile2NVMFile(nemoPath : string, nvmPath : string) -> bool;
+}
+
+parseNeMo2NVMs(nemo)
+{
+    NVM2s(NeMoStr2NVMCheckRs(nemo));
+}
+
+parseNeMoFile2NVMs(path)
+{
+    NVM2s(NeMoFile2NVMCheckRs(path));
+}
+
+parseNeMo2NVMFile(nemo,path)
+{
+    setFileContent(path,parseNeMo2NVMs(nemo));
+}
+
+parseNeMoFile2NVMFile(nemoPath,nvmPath)
+{
+    nvm = parseNeMoFile2NVMs(nemoPath);
+    setFileContent(nvmPath,nvm);
+}

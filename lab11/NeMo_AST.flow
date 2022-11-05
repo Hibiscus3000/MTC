@@ -53,7 +53,7 @@ export
         Var(s : string);
     
     parseNeMo(nemoProg : string) -> Program;
-    parseNeMoFile(filename : string) -> Program;
+    parseNeMoFile(path : string) -> Program;
 
     buildSub(xs : [flow]) -> Arithmetic;
     buildDiv(xs : [flow]) -> Arithmetic;
@@ -96,7 +96,7 @@ parseNeMo(nemoProg)
     parsic(NeMoGrammar(),nemoProg,subDivChoicePegActions);
 }
 
-parseNeMoFile(filename)
+parseNeMoFile(path)
 {
-    parseNeMo(getFileContent(filename));
+    parseNeMo(getFileContent(path));
 }

@@ -4,7 +4,7 @@ declarations = '{' declaration*:decls '}' {:decls} | declaration*;
 declaration = "VAR" ws var:v ws* ':' ws* type:t ';' ws+ {Declaration(:v,:t)};
 type = "INT" {IntType()}
     | '[' type:ind ws+ "ARRAY" ws+ "OF" ws+ type:val ']' {ArrayType(:ind,:val)}
-    | '[' type:t ']' {ArrayType(:t,IntType())};
+    | '[' type:t ']' {ArrayType(IntType(),:t)};
 
 body_seq = body | sequence;
 body = function

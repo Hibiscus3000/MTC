@@ -1,0 +1,106 @@
+import MTC/lab12/execute_NVM;
+
+export
+{
+    configurations2s(configurations : [Configuration]) -> string;
+    configurations2sFull(configurations : [Configuration]) -> string;
+}
+
+configurations2s(configurations)
+{
+    configurations2sFn(configurations,configuration2sShort);
+}
+
+configurations2sFull(configurations)
+{
+    configurations2sFn(configurations,configuration2sFull);
+}
+
+configurations2sFn(configurations,configuration2s)
+{
+    if (0 == length(configurations))
+        ""
+    else
+    {
+        getPattern(configurations[0].stateSpace.varStates) + "\n\n" + 
+        foldi(configurations,"",\i,acc,configuration ->
+        {
+            acc +
+            (if ("Common" == configuration.type.structname)
+                configuration2s(i,configuration)
+            else
+                configuration2sFull(i,configuration))
+            + "\n";
+        })
+    }
+}
+
+getPattern(varStates : Tree<Var,Value>)
+{
+    "PATTERN:\n$configNum: label: $label came from: $cameFrom (if not Initial) (" +
+    foldi(tree2pairs(varStates),"",\i,acc,varState -> acc + (if (0 != i) ", " else "") + varState.first.s)
+    + ")";
+}
+
+configuration2sShort(configNum,configuration)
+{
+    cameFrom = getCameFrom(configuration.type);
+    i2s(configNum) + ": label: " + i2s(configuration.label) + " cameFrom: "
+    + (if (-1 != cameFrom) i2s(cameFrom) else "") + " ("
+        + foldi(tree2pairs(configuration.stateSpace.varStates),"",
+            \i,acc,varState -> acc + (if (0 != i) ", " else "") + value2s(varState.second))
+        + ")";
+}
+
+configuration2sFull(configNum,configuration : Configuration)
+{
+    cameFrom = getCameFrom(configuration.type);
+    errorMsg = getErrorMsg(configuration.type);
+    i2s(configNum) + ": " + configuration.type.structname + " configuration"
+        + (if (-1 != cameFrom) " (came from " + i2s(cameFrom) + ")" else "") + "\n" + 
+    "{" 
+        + (if ("" != errorMsg) "\n\t" + errorMsg else "")
+        + (if (-1 != configuration.label) "\n\tlabel: " + i2s(configuration.label) else "")
+        + fold(tree2pairs(configuration.stateSpace.varStates),"",
+            \acc,varState ->
+                acc + "\n\t" + varState2s(varState))
+    + "\n}";
+}
+
+varState2s(varState : Pair<Var,Value>)
+{
+    varState.first.s + ": " + value2s(varState.second);
+}
+
+value2s(value)
+{
+    switch(value)
+    {
+        Int(i) : i2s(i);
+        ArrayValue(indexValueTree) : 
+        {
+            indexValuePairs = tree2pairs(indexValueTree);
+            arrayLength = length(indexValuePairs);
+            "["
+            + foldi(indexValuePairs,"",\i,acc,indexValuePair ->
+                {
+                    acc + "(" + value2s(indexValuePair.first) + ", " + value2s(indexValuePair.second) + ")"
+                    + (if (i != arrayLength - 1) ", " else "");
+                })
+            + "]";
+        }
+        Undefined() : "UNDEFINED";
+    }
+}
+
+getErrorMsg(configurationType)
+{
+    switch (configurationType : ConfigurationType)
+    {
+        Initial() : "";
+        Common(cameFrom) : "";
+        Final(cameFrom) : "";
+        Avost(cameFrom) : "";
+        Exceptional(msg,cameFrom) : msg;
+    }
+}

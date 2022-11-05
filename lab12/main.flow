@@ -1,12 +1,36 @@
-import MTC/lab12/NeMo2NVM;
+import MTC/lab12/parse_NeMo2NVMs;
 import MTC/lab12/parse_NVM;
+import MTC/lab12/execute_NVM;
+import MTC/lab12/configs2s;
 
 main()
 {
-    //nemoProg = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/7.nem");
-    //println(ast2s(nemoProg) + "\n");
-    //vmProg = NeMoProg2NVM(nemoProg);
-    vmProg = parseNVMFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/1.vm");
-    println(NVM2s(vmProg));
+    /*nemo = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/4.nem");
+    println(ast2s(nemo) + "\n\n");
+    vm = NeMoProg2NVM(nemo);
+    println(NVM2s(Some(vm)) + "\n");*/
+
+
+    /*nemo = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/9.nem");
+    println(ast2s(nemo) + "\n\n");
+    vm = NeMoProg2NVMCheckRs(nemo);
+    println(NVM2s(vm) + "\n");
+    configurations = executeMaybeNVM(vm);
+    println(eitherMap(configurations,configurations2s,""));*/
+
+
+    /*vm = parseNVMFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/vm/5.vm");
+    println(NVM2s(Some(vm)) + "\n");
+    configurations = executeNVM(vm);
+    println(eitherMap(configurations,configurations2s,""));*/
+
+
+    /*nemo = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/10.nem");
+    println(ast2s(nemo) + "\n\n");
+    vm = NeMoProg2NVMCheckRs(nemo);
+    println(NVM2s(vm) + "\n");
+    configurations = executeMaybeNVM(vm);
+    println(eitherMap(configurations,configurations2s,""));*/
+
     quit(0);
 }

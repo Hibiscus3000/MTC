@@ -2,12 +2,6 @@ import MTC/lab11/NeMo_AST;
 
 export
 {
-    StateSpace(varStates : [VarState]);
-    VarState(var : Var, value : Value);
-    Value ::= IntValue, ArrayValue, Undefined;
-        IntValue(i : int);
-        ArrayValue(indexValuePair : [Pair<Value,Value>]);
-        Undefined();
     LabeledOperator ::= LabeledAssignment,LabeledTest,LabeledEmpty;
         LabeledTest(label : int, relation : Relation,if_goto : [int], else_goto : [int]);
         LabeledAssignment(label : int, assignment : Assignment, goto : [int]);
@@ -47,11 +41,6 @@ makeLabeledOperatorsTree(labeledOperators,emptiesLabelsAndGotosTree)
 
 replaceGoto(goto, emptiesLabelsAndGotosTree)
 {
-    removeDuplicates(sort(fold(goto,[],\acc,gt -> concat(acc,eitherMap(lookupTree(emptiesLabelsAndGotosTree,gt),
-            \foundGoto -> replaceGoto(foundGoto,emptiesLabelsAndGotosTree),[gt])))));
-}
-
-removeDuplicates(goto)
-{
-    fold(goto,[],\acc,gt -> if (lastElement(acc,-1) != gt) arrayPush(acc,gt) else acc);
+    sortUnique(fold(goto,[],\acc,gt -> concat(acc,eitherMap(lookupTree(emptiesLabelsAndGotosTree,gt),
+            \foundGoto -> replaceGoto(foundGoto,emptiesLabelsAndGotosTree),[gt]))));
 }

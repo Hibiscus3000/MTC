@@ -4,6 +4,7 @@ export
 {
     ast2sCheckRs(program : Program) -> string;
     ast2s(program : Program) -> string;
+    ast2file(program : Program, path : string) -> bool;
     checkErrors(program : Program) -> string;
     body2s(body : Body,nesting : string) -> string;
     relation2s(relation : Relation,underOperationPriority : int) -> string;
@@ -28,7 +29,12 @@ ast2sCheckRs(program)
 
 ast2s(program)
 {
-    declarations2s(program.declarations) + "\n" + body2s(program.body,"");
+    declarations2s(program.declarations) + body2s(program.body,"");
+}
+
+ast2file(program,path)
+{
+    setFileContent(path,ast2sCheckRs(program));
 }
 
 declarations2s(declarations)
@@ -344,12 +350,10 @@ formTestErrorsMsg(relation,declsTree,prefix,postfix)
     relationValidity = checkRelation(relation,declsTree);
     undeclaredVariables = relationValidity.second;
     typeMismatches = relationValidity.first;
-    fold(typeMismatches,"",\acc,error -> acc + error + "\n")
-    +
-    (if (0 != length(undeclaredVariables))
+    if (0 != length(undeclaredVariables))
         formUndeclaredVarsMsg(undeclaredVariables,prefix + relation2s(relation,0) + postfix)
     else
-        "");
+        fold(typeMismatches,"",\acc,error -> acc + error + "\n");
 }
 
 checkExpr(expr,declsTree) -> Pair<[string],[string]>
@@ -464,7 +468,7 @@ getRelationValidity(r1,r2,declsTree)
 {
     r1Pair = checkRelation(r1,declsTree);
     r2Pair = checkRelation(r2,declsTree);
-    Pair(concat(r1Pair.second,r2Pair.second),concat(r1Pair.second,r2Pair.second));
+    Pair(concat(r1Pair.first,r2Pair.first),concat(r1Pair.second,r2Pair.second));
 }
 
 checkRelationAtom(relationAtom, declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
@@ -511,8 +515,9 @@ isDeclared(var, declsTree) -> [string]
 
 formUndeclaredVarsMsg(varNames, bodyStr)
 {
-    "Attempting to use undeclared variable" + (if (1 != length(varNames)) "s " else " ")
-    + fold(varNames,"",\acc,varName -> acc + (if (acc != "") ", " else "") + "\"" + varName + "\"")
+    uniqueVarNames = uniq(varNames);
+    "Attempting to use undeclared variable" + (if (1 != length(uniqueVarNames)) "s " else " ")
+    + fold(uniqueVarNames,"",\acc,varName -> acc + (if (acc != "") ", " else "") + varName)
     + " in \"" + bodyStr + "\"\n";
 }
 

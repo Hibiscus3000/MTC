@@ -1,0 +1,11 @@
+VAR n : INT;
+VAR m : INT;
+VAR y : INT;
+0: n := 1000000 goto {2}
+2: if (n>=0) then{10} else{2}
+10: m:=0 goto{11}
+11: y:=0 goto{20}
+20: if (y>n) then{30} else{21}
+21: m:=m+1 goto{22}
+22: y:=m*m goto{20}
+30: m:=m-1 goto{5}

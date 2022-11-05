@@ -1,3 +1,6 @@
+VAR y : INT;
+VAR n : INT;
+VAR m : INT;
 0: m:=0 goto{10}
 0: m:=m+1 goto{10, 15}
 10: m:=m-1 goto{10, 15}

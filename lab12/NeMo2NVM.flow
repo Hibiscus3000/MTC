@@ -128,9 +128,10 @@ test2LabeledOperators(test, label, choiceWhileGoto : Maybe<int>)
         {
             bodyAsLabeledOperators = body2LabeledOperators1(body,label + 1,Some(label));
             bodyLength = length(bodyAsLabeledOperators);
-            concat([LabeledTest(label,relation,[label + 1], if (0 != bodyLength) [label + bodyLength + 1] else [])],
-                arrayPush(bodyAsLabeledOperators,
-                    LabeledEmpty(label + bodyLength + 1,[either(choiceWhileGoto,label + bodyLength + 2)])));
+            concat([LabeledTest(label,relation,if (0 != bodyLength) [label + 1] else [label],
+                [label + bodyLength + 1])],
+                    arrayPush(bodyAsLabeledOperators,
+                        LabeledEmpty(label + bodyLength + 1,[either(choiceWhileGoto,label + bodyLength + 2)])));
         }
         If(relation,op_if,op_else) :
         {

@@ -1,0 +1,14 @@
+VAR array : [[INT]];
+VAR x : [INT];
+
+{
+    x[0] := 1;
+    array[0] := x;
+    x[1] := 2;
+    array[1] := x;
+    x[2] := 3;
+    array[2] := x;
+    array[3] := array[1];
+    array[4] := array[0];
+    x[3] := APP(APP(array,3),0);
+}

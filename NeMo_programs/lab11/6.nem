@@ -1,0 +1,8 @@
+VAR v : INT;
+VAR x : [INT];
+
+{
+    v := 7;
+    x[v + v] := v;
+    v := APP(UPD(x,10,5),x[14] + 3);
+}

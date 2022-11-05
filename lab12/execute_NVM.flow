@@ -1,0 +1,382 @@
+import MTC/lab12/parse_NVM;
+
+export
+{
+    StateSpace(varStates : Tree<Var,Value>);
+    Value ::= Int, ArrayValue, Undefined;
+        ArrayValue(indexValueTree : Tree<Value,Value>);
+        Undefined();
+    Configuration(num : int, label : int, stateSpace : StateSpace, type : ConfigurationType);
+    ConfigurationType ::= Initial,Common,Final,Avost,Exceptional;
+        Initial();
+        Common(cameFrom : int);
+        Final(cameFrom : int);
+        Avost(cameFrom : int);
+        Exceptional(msg : string,cameFrom : int);
+
+    executeMaybeNVM(maybeVMProgram : Maybe<VMProgram>) -> Maybe<[Configuration]>;
+    executeNVM(vmProgram : VMProgram) -> Maybe<[Configuration]>;
+
+    getCameFrom(configurationType : ConfigurationType) -> int;
+}
+
+executeMaybeNVM(maybeVMProgram)
+{
+    maybeBind(maybeVMProgram,executeNVM);
+}
+
+executeNVM(vmProgram)
+{
+    if (checkNVMRs(vmProgram))
+        None()
+    else
+    {
+        InitialOperatorResult = popmin(vmProgram.labeledOperatorsTree);
+        switch(InitialOperatorResult : TreePopResult)
+        {
+            EmptyPopResult() : None();
+            PopResult(k,v,rest) :
+                Some(executeNVMReqursion(0,vmProgram.labeledOperatorsTree,
+                    [Configuration(0,k,createInitialStateSpace(vmProgram.declarations),Initial())],[]));
+        }
+    }
+}
+
+createInitialStateSpace(declarations)
+{
+    StateSpace(fold(declarations,makeTree(),\stateTree,declaration
+        -> setTree(stateTree,declaration.var,Undefined())));
+}
+
+executeNVMReqursion(configNum,labeledOperatorsTree,queue,visited : [Configuration]) -> [Configuration]
+{
+    if (0 == length(queue))
+        visited
+    else
+    {
+        nextConfigNum = ref configNum;
+        current = ref queue[0];
+        tail = removeIndex(queue,0);
+        currentLabeledOperatorsSet = lookupTree(labeledOperatorsTree,^current.label);
+        newQueue =
+            if ("Avost" == ^current.type.structname || "Exceptional" == ^current.type.structname)
+                tail
+            else
+                eitherFn(currentLabeledOperatorsSet, \operators -> fold(operators,tail,
+                    \accQueue,operator ->
+                        {
+                            eitherMap(calculateNextStateSpace(^current.stateSpace,operator),\newStateSpace ->
+                                eitherMap(getGoto(operator,^current.stateSpace),\goto ->
+                                {
+                                    if (0 == length(goto))
+                                    {
+                                        nextConfigNum := ^nextConfigNum + 1;
+                                        arrayPush(accQueue,
+                                            Configuration(^nextConfigNum,-1,newStateSpace,Avost(^current.num)));
+                                    }
+                                    else
+                                        fold(goto,accQueue,\accQ,gt -> 
+                                        {
+                                            nextConfigNum := ^nextConfigNum + 1;
+                                            arrayPush(accQ,
+                                                Configuration(^nextConfigNum,gt,newStateSpace,Common(^current.num)))
+                                        });
+                                },
+                                    arrayPushExceptional(operator,accQueue,^current,configNum)),
+                                        arrayPushExceptional(operator,accQueue,^current,configNum));
+                        }),
+                        \ -> 
+                            {
+                                current := Configuration(^current.num,^current.label,^current.stateSpace,
+                                    Final(getCameFrom(^current.type)));
+                                tail;
+                            });
+        executeNVMReqursion(^nextConfigNum,labeledOperatorsTree,newQueue,arrayPush(visited,^current));
+    }
+}
+
+arrayPushExceptional(operator,accQueue,current,configNum)
+{
+    arrayPush(accQueue,Configuration(current.num,-1,current.stateSpace,
+        Exceptional("Attempt to use undefined variable in \"" + operator2s(operator) + "\"",configNum)))
+}
+
+calculateNextStateSpace(stateSpace,operator)
+{
+    switch(operator : Operator)
+    {
+        OAssignment(assignment,goto) : getVarsNewValue(assignment.varApply,assignment.expr,stateSpace);
+        OTest(relation,if_goto,else_goto) : Some(stateSpace);
+        OEmpty(goto) : Some(stateSpace);
+    }
+}
+
+getGoto(operator,stateSpace)
+{
+    switch (operator : Operator)
+    {
+        OAssignment(assignment,goto) : Some(goto);
+        OTest(relation,if_goto,else_goto) : maybeMap(relationCheck(relation,stateSpace),
+            \relCheck -> if (relCheck) if_goto else else_goto); 
+        OEmpty(goto) : Some(goto);
+    }
+}
+
+getVarsNewValue(varApply, newValue, stateSpace : StateSpace) -> Maybe<StateSpace>
+{
+    switch(varApply : VarApply)
+    {
+        Var(s) : maybeBind(calcExpr(newValue,stateSpace),
+            \newVal ->
+                if ("Undefined" == newVal.structname)
+                    None()
+                else
+                    Some(StateSpace(setTree(stateSpace.varStates,varApply,newVal))));
+        Apply(array,index) :
+        {
+            maybeBind2(\arrayInApply,calcUpdate
+                ->
+                    if ("Undefined" == calcUpdate.structname)
+                        None()
+                    else
+                        Some(StateSpace(setTree(stateSpace.varStates, arrayInApply, calcUpdate))))
+                    (getArrayInApply(array),calcUpdate(Update(array,index,newValue),stateSpace));
+        }
+    }
+}
+
+getArrayInApply(array)
+{
+    switch (array : Expr)
+    {
+        Arithmetic() :
+            switch (array : Arithmetic)
+            {
+                Operand() :
+                    switch(array : Operand)
+                    {
+                        VarApply() :
+                            switch(array : VarApply)
+                            {
+                                Var(s) : Some(array);
+                                Apply(array1,index1) : getArrayInApply(array1);
+                            }
+                        Int(i) : None();
+                    }
+                default : None();
+            }
+        Update(array1,index1,new_value1) : None();
+    }
+}
+
+calcExpr(expr,stateSpace) -> Maybe<Value>
+{
+    switch (expr : Expr)
+    {
+        Arithmetic() : calcArithmetic(expr,stateSpace);
+        Update(array,index,new_value) : calcUpdate(expr,stateSpace);
+    }
+}
+
+calcArithmetic(arithmetic : Arithmetic,stateSpace : StateSpace) -> Maybe<Value>
+{
+    switch (arithmetic : Arithmetic)
+    {
+        Div(a1,a2) : buildInt(a1,a2,stateSpace,makeDiv);
+        Product(a1,a2) : buildInt(a1,a2,stateSpace,makeProduct);
+        Sub(a1,a2) : buildInt(a1,a2,stateSpace,makeSub);
+        Add(a1,a2) : buildInt(a1,a2,stateSpace,makeAdd);
+        Neg(a1) : maybeBind(calcArithmetic(a1,stateSpace),\a1Calc -> maybeMap(getInt(a1Calc),makeNeg));
+        Operand() : calcOperand(arithmetic,stateSpace);
+    }
+}
+
+calcUpdate(update,stateSpace) -> Maybe<Value>
+{
+    calcArray : Maybe<Value> = calcExpr(update.array,stateSpace);
+    calcIndex = calcExpr(update.index,stateSpace);
+    newArrValue : Maybe<Value> =
+        maybeBind2(\arrValue : Value,calcInd : Value ->
+            updateArrayValue(arrValue,calcInd,calcExpr(update.new_value,stateSpace)))
+            (calcArray,calcIndex);
+    switch (update.array : Expr)
+    {
+        Arithmetic() :
+            switch(update.array : Arithmetic)
+            {
+                Operand() :
+                    switch(update.array : Operand)
+                    {
+                        VarApply() :
+                            switch (update.array : VarApply)
+                            {
+                                Var(s) : newArrValue;
+                                Apply(array,index) :
+                                    maybeBind2(\includingArray,ind ->
+                                        updateArrayValue(includingArray,ind,newArrValue))
+                                            (calcExpr(array,stateSpace),calcExpr(index,stateSpace));
+                            }
+                        Int(i) : None();
+                    }
+                default : None();
+            }
+        Update(array1,index1,new_value1) : newArrValue;
+    }
+}
+
+updateArrayValue(arrValue : Value, calcInd : Value, newValue : Maybe<Value>) -> Maybe<Value>
+{
+    maybeBind(newValue, \calcNewValue ->
+            switch(arrValue : Value)
+            {
+                Int(i) : None();
+                ArrayValue(indexValueTree) :
+                    Some(ArrayValue(setTree(indexValueTree,calcInd,calcNewValue)));
+                Undefined() :
+                    Some(ArrayValue(makeTree1(calcInd,calcNewValue)));
+            });
+}
+
+buildInt(a1,a2,stateSpace,makeInt) -> Maybe<Value>
+{
+    maybeBind2(\a1Calc,a2Calc -> maybeMap2(makeInt)(getInt(a1Calc),getInt(a2Calc)))
+        (calcArithmetic(a1,stateSpace),calcArithmetic(a2,stateSpace)); 
+}
+
+getInt(value) -> Maybe<int>
+{
+    switch(value : Value)
+    {
+        Int(i) : Some(i);
+        default : None();
+    }
+}
+
+makeDiv(i1,i2)
+{
+    Int(i1 / i2);
+}
+
+makeProduct(i1,i2)
+{
+    Int(i1 * i2);
+}
+
+makeSub(i1,i2)
+{
+    Int(i1 - i2);
+}
+
+makeAdd(i1,i2)
+{
+    Int(i1 + i2);
+}
+
+makeNeg(i)
+{
+    Int(-i);
+}
+
+calcOperand(operand,stateSpace : StateSpace) -> Maybe<Value>
+{
+    switch (operand : Operand)
+    {
+        Int(i) : Some(operand);
+        VarApply() : calcVarApply(operand,stateSpace);
+    }
+}
+
+calcVarApply(varApply,stateSpace : StateSpace) -> Maybe<Value>
+{
+    switch (varApply : VarApply)
+    {
+        Var(s) : lookupTree(stateSpace.varStates,varApply);
+        Apply(array,index) : 
+        {
+            arrayValue = calcExpr(array,stateSpace);
+            maybeBind2(\arrValue,calcIndex -> 
+                switch(arrValue : Value)
+                {
+                    Int(i) : None();
+                    ArrayValue(indexValueTree) : lookupTree(indexValueTree,calcIndex);
+                    Undefined() : None();
+                })
+                (arrayValue,calcExpr(index,stateSpace));
+        }
+    }
+}
+
+relationCheck(relation,stateSpace : StateSpace) -> Maybe<bool>
+{
+    switch(relation : Relation)
+    {
+        Or(r1,r2) : maybeMap2(\r1Check,r2Check -> r1Check || r2Check)
+            (relationCheck(r1,stateSpace),relationCheck(r2,stateSpace)); 
+        And(r1,r2) : maybeMap2(\r1Check,r2Check -> r1Check && r2Check)
+            (relationCheck(r1,stateSpace),relationCheck(r2,stateSpace));
+        Not(r1) : maybeMap(relationCheck(r1,stateSpace),\r1Check -> !r1Check);
+        RelationAtom() : relationAtomCheck(relation,stateSpace);
+    }
+}
+
+relationAtomCheck(relationAtom,stateSpace) -> Maybe<bool>
+{
+    switch(relationAtom : RelationAtom)
+    {
+        LesserEquals(a1,a2) : checkRelationAtomWithCheckFn(a1,a2,stateSpace,checkLesserEquals);
+        GreaterEquals(a1,a2) : checkRelationAtomWithCheckFn(a1,a2,stateSpace,checkGreaterEquals);
+        Lesser(a1,a2) : checkRelationAtomWithCheckFn(a1,a2,stateSpace,checkLesser);
+        Greater(a1,a2) : checkRelationAtomWithCheckFn(a1,a2,stateSpace,checkGreater);
+        Equals(a1,a2) : checkRelationAtomWithCheckFn(a1,a2,stateSpace,checkEquals);
+        NotEquals(a1,a2) : checkRelationAtomWithCheckFn(a1,a2,stateSpace,checkNotEquals);
+    }
+}
+
+checkRelationAtomWithCheckFn(a1,a2,stateSpace,check : (int,int) -> bool) -> Maybe<bool>
+{
+    leftSide = maybeBind(calcExpr(a1,stateSpace),getInt);
+    rightSide = maybeBind(calcExpr(a2,stateSpace),getInt);
+    maybeMap2(\lS,rS -> check(lS,rS))(leftSide,rightSide);
+}
+
+checkLesserEquals(i1,i2)
+{
+    i1 <= i2;
+}
+
+checkGreaterEquals(i1,i2)
+{
+    i1 >= i2;
+}
+
+checkLesser(i1,i2)
+{
+    i1 < i2;
+}
+
+checkGreater(i1,i2)
+{
+    i1 > i2;
+}
+
+checkEquals(i1,i2)
+{
+    i1 == i2;
+}
+
+checkNotEquals(i1,i2)
+{
+    i1 != i2;
+}
+
+getCameFrom(configurationType)
+{
+    switch (configurationType : ConfigurationType)
+    {
+        Initial() : -1;
+        Final(cameFrom) : cameFrom;
+        Common(cameFrom) : cameFrom;
+        Avost(cameFrom) : cameFrom;
+        Exceptional(msg,cameFrom) : cameFrom;
+    }
+}

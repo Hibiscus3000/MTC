@@ -10,7 +10,6 @@ export
     checkNVMRs(vmProgram : VMProgram) -> bool;
 
     buildLabeledOperatorsTree(xs : [flow]) -> Tree<int,[Operator]>;
-
 }
 
 NVMGrammarOp : ref Maybe<[PegOp]> = ref None();
@@ -81,7 +80,7 @@ checkOperators(labelOperatorsPairs : [Pair<int,[Operator]>],declsTree)
 {
     fold(labelOperatorsPairs,"",\accRStr,labelOperatorsPair ->
         accRStr + fold(labelOperatorsPair.second,"",\curRStr,operator ->
-            checkOperator(labelOperatorsPair.first,operator,declsTree) + "\n"));
+            checkOperator(labelOperatorsPair.first,operator,declsTree)));
 }
 
 checkOperator(label,operator,declsTree)
@@ -100,20 +99,53 @@ checkOperator(label,operator,declsTree)
             undeclaredVariables = concat(varApplyUndeclaredVariables,exprUndeclaredVars);
             typeMismatches = concat(varApplyErrorsPair.first,exprErrorsPair.first);
             if (0 != length(undeclaredVariables))
-                formUndeclaredVarsMsg(undeclaredVariables,labeledOperatorsSet2s(Pair(label,[operator])))
+                formUndeclaredVarsMsg(undeclaredVariables,labeledOperator2(label,operator))
             else
             {
                 (if (isComplicated(expr) && !isInt(expr,declsTree))
-                    "Right side of \"" + labeledOperatorsSet2s(Pair(label,[operator])) + "\" is not INT\n"
+                    "Right side of \"" + labeledOperator2(label,operator) + "\" is not INT\n"
                 else
                     (if (getExprType(varApply,declsTree) != getExprType(expr,declsTree))
-                        "Types of right and left sides of assignment \"" + labeledOperatorsSet2s(Pair(label,[operator]))
-                            + "\" do not match\n"
+                        "Types of right and left sides of assignment \""
+                            + labeledOperator2(label,operator) + "\" do not match\n"
                     else
-                        ""))
+                        checkLeftSideApply(varApply,declsTree)))
                 + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n");
             }
         }
         OEmpty(goto) : "";
     }
+}
+
+checkLeftSideApply(expr : Expr,declsTree : Tree<Var,Type>) -> string
+{
+    switch (expr : Expr)
+    {
+        Arithmetic() :
+            switch (expr : Arithmetic)
+            {
+                Operand() :
+                    switch(expr : Operand)
+                    {
+                        VarApply() :
+                            switch(expr : VarApply)
+                            {
+                                Apply(array,index) :
+                                    if ("Update" == array.structname)
+                                        "Attempt to use undeclared array in left side Apply\n"
+                                    else
+                                        "";
+                                Var(s) : "";
+                            }
+                        Int(i) : "";
+                    }
+                default : "";
+            }
+        Update(array,index,new_value) : "";
+    }
+}
+
+labeledOperator2(label,operator)
+{
+    i2s(label) + ": " + operator2s(operator);
 }
