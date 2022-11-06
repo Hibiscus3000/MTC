@@ -1,5 +1,4 @@
 import MTC/lab12/NVM2s;
-import MTC/lab11/ast2str;
 
 export
 {
@@ -12,7 +11,7 @@ export
     buildLabeledOperatorsTree(xs : [flow]) -> Tree<int,[Operator]>;
 }
 
-NVMGrammarOp : ref Maybe<[PegOp]> = ref None();
+NVMGrammarOps : ref Maybe<[PegOp]> = ref None();
 
 specialPegActions =
 {
@@ -29,7 +28,7 @@ buildLabeledOperatorsTree(xs)
 
 NVMGrammar()
 {
-	onlyOnce(NVMGrammarOp, \ -> {
+	onlyOnce(NVMGrammarOps, \ -> {
 		compilePegGrammar("#include MTC/lab12/NVM_grammar.lingo");
 	});
 }
@@ -60,7 +59,7 @@ parseNVMFileCheckRs(filename)
 
 checkNVMRs(vmProgram)
 {
-    declsCheck = checkDeclaration(vmProgram.declarations);
+    declsCheck = checkDeclarations(vmProgram.declarations);
     errors = declsCheck.first + checkOperators(tree2pairs(vmProgram.labeledOperatorsTree),declsCheck.second);
     errorMsg = 
     if ("" != errors)
@@ -87,7 +86,7 @@ checkOperator(label,operator,declsTree)
 {
     switch (operator : Operator)
     {
-        OTest(relation,if_goto,else_goto) : formTestErrorsMsg(relation,declsTree,"(",")");
+        OTest(relation,if_goto,else_goto) : formRelationErrorsMsg(relation,declsTree,"(",")");
         OAssignment(assignment, goto) :
         {
             varApply = assignment.varApply;
@@ -99,7 +98,8 @@ checkOperator(label,operator,declsTree)
             undeclaredVariables = concat(varApplyUndeclaredVariables,exprUndeclaredVars);
             typeMismatches = concat(varApplyErrorsPair.first,exprErrorsPair.first);
             if (0 != length(undeclaredVariables))
-                formUndeclaredVarsMsg(undeclaredVariables,labeledOperator2(label,operator))
+                formUndeclaredVarsMsg(undeclaredVariables,labeledOperator2(label,operator),
+                    "Attempt to use undeclared variable","")
             else
             {
                 (if (isComplicated(expr) && !isInt(expr,declsTree))

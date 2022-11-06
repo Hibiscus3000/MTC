@@ -57,17 +57,17 @@ export
 
     buildSub(xs : [flow]) -> Arithmetic;
     buildDiv(xs : [flow]) -> Arithmetic;
+
+    subDivChoicePegActions =
+    {
+	    tSub = setTree(defaultPegActions.t, "buildSub", buildSub);
+	    tDiv = setTree(tSub,"buildDiv",buildDiv);
+        tChoice = setTree(tDiv,"buildChoice",buildChoice);
+	    SemanticActions(tChoice);
+    }
 }
 
-NeMoGrammarOp : ref Maybe<[PegOp]> = ref None();
-
-subDivChoicePegActions =
-{
-	tSub = setTree(defaultPegActions.t, "buildSub", buildSub);
-	tDiv = setTree(tSub,"buildDiv",buildDiv);
-    tChoice = setTree(tDiv,"buildChoice",buildChoice);
-	SemanticActions(tChoice);
-}
+NeMoGrammarOps : ref Maybe<[PegOp]> = ref None();
 
 buildSub(xs)
 {
@@ -86,7 +86,7 @@ buildChoice(xs : [flow]) -> Choice
 
 NeMoGrammar()
 {
-	onlyOnce(NeMoGrammarOp, \ -> {
+	onlyOnce(NeMoGrammarOps, \ -> {
 		compilePegGrammar("#include MTC/lab11/NeMo_grammar.lingo");
 	});
 }

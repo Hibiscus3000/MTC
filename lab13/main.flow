@@ -1,0 +1,9 @@
+import MTC/lab13/annotatedNeMo;
+import runtime;
+
+main()
+{
+    annotatedProgram = parseAnnotatedNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab13/3_err.anem");
+    println(eitherMap(annotatedProgram,annotatedNeMo2str,""));
+    quit(0);
+}

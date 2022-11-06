@@ -1,3 +1,17 @@
+annotated_program = ws* precondition:pre ws* program:program postcondition:post ws*
+    {AnnotatedProgram(:pre,:program,:post)};
+precondition = '{' ws* declarations:decls ws* ann_or:or ws* '}' {PreCondition(:decls,:or)};
+postcondition = '{' ws* ann_or:or ws* '}' {PostCondition(:or)};
+
+ann_or = ann_and:and ws+ "||" ws+ ann_or:or {AOr(:and,:or)} | ann_and;
+ann_and = ann_not:not ws+ "&&" ws+ ann_and:and {AAnd(:not,:and)} | ann_not;
+ann_not = '~' ws* ann_relation_atom:ra {ANot(:ra)} | ann_relation_atom | '(' ws* ann_or:or ws* ')' {:or};
+ann_relation_atom = relation_atom
+    | ('∃' | 'E') ws+ declaration:d ws* '(' ws* ann_or:or ws* ')' {Exists(:d,:or)}
+    | ('∀' | 'A') ws+ declaration:d ws* '(' ws* ann_or:or ws* ')' {Any(:d,:or)}
+    | "TRUE" {True()}
+    | "FALSE" {False()};
+
 program = declarations:decls ws* sequence:sequence ws* {Program(:decls,:sequence)};
 
 declarations = '{' declaration_semicolon*:decls '}' {:decls} | declaration_semicolon*;
@@ -46,14 +60,13 @@ else = ws* "else" ws+ body_seq:b {:b};
 
 or = and:and ws+ "||" ws+ or:or {Or(:and,:or)} | and;
 and = not:not ws+ "&&" ws+ and:and {And(:not,:and)} | not;
-not = '~' ws* relation_atom:ra {Not(:ra)} | relation_atom;
+not = '~' ws* relation_atom:ra {Not(:ra)} | relation_atom | '(' ws* or:or ws* ')' {:or};
 relation_atom = arithmetic:a1 ws* "<=" ws* arithmetic:a2 {LesserEquals(:a1,:a2)}
     | arithmetic:a1 ws* ">=" ws* arithmetic:a2 {GreaterEquals(:a1,:a2)}
     | arithmetic:a1 ws* '<' ws* arithmetic:a2 {Lesser(:a1,:a2)}
     | arithmetic:a1 ws* '>' ws* arithmetic:a2 {Greater(:a1,:a2)}
     | arithmetic:a1 ws* "==" ws* arithmetic:a2 {Equals(:a1,:a2)}
-    | arithmetic:a1 ws* "!=" ws* arithmetic:a2 {NotEquals(:a1,:a2)}
-    | '(' ws* or:or ws* ')' {:or};
+    | arithmetic:a1 ws* "!=" ws* arithmetic:a2 {NotEquals(:a1,:a2)};
 
 operand = int | apply_var;
 apply_var = apply | var;

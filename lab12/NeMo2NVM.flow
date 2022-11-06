@@ -1,5 +1,5 @@
 import MTC/lab12/NVM;
-import MTC/lab11/ast2str;
+import MTC/lab11/NeMo2s;
 
 export
 {

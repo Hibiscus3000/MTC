@@ -1,9 +1,9 @@
-import MTC/lab11/ast2str;
+import MTC/lab11/NeMo2s;
 
 main()
 {
-    result = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/6.nem");
-    println(ast2sCheckRs(result));
-    //println(ast2file(result, "C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/7.nem"));
+    result = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab13/1.anem");
+    println(program2sCheckRs(result));
+    //println(program2file(result, "C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/7.nem"));
     quit(0);
 }

@@ -7,8 +7,8 @@ VAR x : [INT];
     x[1] := 2;
     array[1] := x;
     x[2] := 3;
-    array[2] := x;
+    array[2] := UPD(x,2,APP(APP(array,1),1));
     array[3] := array[1];
-    array[4] := array[0];
+    array[4] := UPD(x,2,x[0] * x[1] * x[2]);
     x[3] := APP(APP(array,3),0);
 }

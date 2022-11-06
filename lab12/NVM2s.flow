@@ -1,5 +1,5 @@
 import MTC/lab12/NVM;
-import MTC/lab11/ast2str;
+import MTC/lab11/NeMo2s;
 
 export
 {
@@ -11,7 +11,7 @@ export
 
 NVM2s(vmProgram)
 {
-    eitherMap(vmProgram,\vmProg -> declarations2s(vmProg.declarations) +
+    eitherMap(vmProgram,\vmProg -> declarations2s(vmProg.declarations,"") +
     fold(tree2pairs(vmProg.labeledOperatorsTree),"",
         \acc,labeledOperatorsSet -> acc + labeledOperatorsSet2s(labeledOperatorsSet)),"");
 }

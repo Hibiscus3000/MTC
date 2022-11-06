@@ -1,0 +1,251 @@
+import MTC/lab11/NeMo2s;
+
+export
+{
+    AnnotatedProgram(precondition : PreCondition, program : Program, postcondition : PostCondition);
+    Formula ::= AOr, AAnd, ANot, ARelationAtom;
+        AOr(f1 : Formula, f2 : Formula);
+        AAnd(f1 : Formula, f2 : Formula);
+        ANot(f : Formula);
+    ARelationAtom ::= RelationAtom, Any, Exists, True, False;
+        Any(declaration : Declaration,formula : Formula);
+        Exists(declaration : Declaration,formula : Formula);
+        True();
+        False();
+    PreCondition(declarations : [Declaration],formula : Formula);
+    PostCondition(formula : Formula);
+
+    parseAnnotatedNeMo(annotatedNemo : string) -> Maybe<AnnotatedProgram>;
+    parseAnnotatedNeMoFile(path : string) -> Maybe<AnnotatedProgram>;
+
+    annotatedNeMo2str(annotatedProgram : AnnotatedProgram) -> string;
+}
+
+annotatedNeMoOps : ref Maybe<[PegOp]> = ref None();
+
+annotatedNeMoGrammar()
+{
+    onlyOnce(annotatedNeMoOps, \ -> {
+		compilePegGrammar("#include MTC/lab13/annotatedNeMo_grammar.lingo");
+	});
+}
+
+parseAnnotatedNeMo(annotatedNeMo)
+{
+    annotatedProgram = parsic(annotatedNeMoGrammar(),annotatedNeMo,subDivChoicePegActions);
+    errorsMsg = checkAnnotatedErrors(annotatedProgram);
+    println(errorsMsg);
+    if ("" == errorsMsg)
+        Some(annotatedProgram)
+    else
+    {
+        println(annotatedNeMo2str(annotatedProgram));
+        None();
+    }
+}
+
+parseAnnotatedNeMoFile(path)
+{
+    parseAnnotatedNeMo(getFileContent(path));
+}
+
+checkAnnotatedErrors(annotatedProgram : AnnotatedProgram)
+{
+    precondition = annotatedProgram.precondition;
+    postcondition = annotatedProgram.postcondition;
+    program = annotatedProgram.program;
+
+    precondDecls = precondition.declarations;
+    programDecls = program.declarations;
+    checkedDecls = checkDeclarations(concat(precondDecls,programDecls));
+
+    redeclarationMsg = checkedDecls.first;
+    if ("" != redeclarationMsg)
+        redeclarationMsg
+    else
+    {
+        declsTree = checkedDecls.second;
+        programVariablesDeclsTree = decls2tree(program.declarations);
+
+        checkAnnotatedBody(program.body,declsTree,programVariablesDeclsTree) +
+        formFormulaErrorsMsg(precondition.formula,declsTree) +
+        formFormulaErrorsMsg(postcondition.formula,declsTree);
+    }
+}
+
+checkAnnotatedBody(body,declsTree,programVariablesDeclsTree)
+{
+    switch(body : Body)
+    {
+        Assignment(varApply,expr) :
+        {
+            exprErrorsPair = checkExpr(expr,declsTree);
+            exprUndeclaredVars = exprErrorsPair.second;
+            varApplyErrorsPair = checkOperand(varApply,programVariablesDeclsTree);
+            varApplyUndeclaredVariables = varApplyErrorsPair.second;
+            typeMismatches = concat(varApplyErrorsPair.first,exprErrorsPair.first);
+            (if (0 != length(varApplyUndeclaredVariables))
+                formUndeclaredVarsMsg(varApplyUndeclaredVariables,body2s(body,""),
+                    "Attempt to use undeclared or not program variable","in left side of assignment")
+            else "")
+            +
+            (if (0 != length(exprUndeclaredVars))
+                formUndeclaredVarsMsg(exprUndeclaredVars,body2s(body,""),
+                    "Attempt to use undeclared or bound variable","in right side of assignment")
+            else "")
+            +
+            (if (0 == length(exprUndeclaredVars) && 0 == length(varApplyUndeclaredVariables))
+                (if (isComplicated(expr) && !isInt(expr,declsTree))
+                    "Right side of \"" + body2s(body,"") + "\" is not INT\n"
+                else
+                    (if (getExprType(varApply,declsTree) != getExprType(expr,declsTree))
+                        "Types of right and left sides of assignment \"" + body2s(body,"") + "\" do not match\n"
+                    else
+                        ""))
+                + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n")
+            else "");
+        }
+        Sequence(bodies) : fold(bodies,"",\acc,body1 -> acc + checkAnnotatedBody(body1,declsTree,
+                programVariablesDeclsTree));
+        Choice(bodies) : fold(bodies,"",\acc,body1 -> acc + checkAnnotatedBody(body1,declsTree,
+                programVariablesDeclsTree));
+        Iteration(sequence) : checkAnnotatedBody(sequence,declsTree,programVariablesDeclsTree);
+        Test() : checkTest(body,declsTree);
+        Function() : checkFunction(body,declsTree);
+    }
+}
+
+formFormulaErrorsMsg(formula,declsTree)
+{
+    formulaValidity = checkFormula(formula,declsTree);
+    undeclaredVariables = formulaValidity.second;
+    typeMismatches = formulaValidity.first;
+    if (0 != length(undeclaredVariables))
+        formUndeclaredVarsMsg(undeclaredVariables,"(" + formula2s(formula,1) + ")",
+            "Attempt to use undeclared variable","")
+    else
+        fold(typeMismatches,"",\acc,error -> acc + error + "\n");
+}
+
+checkFormula(formula,declsTree)
+{
+    switch(formula : Formula)
+    {
+        AOr(f1,f2) : getFormulaValidity(f1,f2,declsTree);
+        AAnd(f1,f2) : getFormulaValidity(f1,f2,declsTree);
+        ANot(f) : checkFormula(f,declsTree)
+        ARelationAtom() : checkARelationAtom(formula,declsTree);
+    }
+}
+
+getFormulaValidity(r1,r2,declsTree)
+{
+    r1Pair = checkFormula(r1,declsTree);
+    r2Pair = checkFormula(r2,declsTree);
+    Pair(concat(r1Pair.first,r2Pair.first),concat(r1Pair.second,r2Pair.second));
+}
+
+checkARelationAtom(relationAtom, declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
+{
+    switch(relationAtom : ARelationAtom)
+    {
+        LesserEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        GreaterEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Lesser(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Greater(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Equals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        NotEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Any(declaration,anyFormula) : checkFormula(anyFormula,setTree(declsTree,declaration.var,declaration.type));
+        Exists(declaration,existsFormula) :
+            checkFormula(existsFormula,setTree(declsTree,declaration.var,declaration.type));
+        True() : Pair([""],[""]);
+        False() : Pair([""],[""]);
+    }
+}
+
+decls2tree(declarations)
+{
+    fold(declarations,makeTree(),\tree,declaration -> setTree(tree,declaration.var,declaration.type));
+}
+
+getFreeVarsDeclsTree(precondition)
+{
+    decls2tree(precondition.declarations);   
+}
+
+
+
+
+
+
+
+
+
+
+annotatedNeMo2str(annotatedProgram)
+{
+    precondition2s(annotatedProgram.precondition) + "\n" + program2s(annotatedProgram.program) + "\n"
+        + postcondition2s(annotatedProgram.postcondition);
+}
+
+precondition2s(precondition)
+{
+    "{\n" + declarations2s(precondition.declarations,"\t") + "\t" + formula2s(precondition.formula,1) + "\n}";
+}
+
+postcondition2s(postcondition : PostCondition)
+{
+    "{\n\t" + formula2s(postcondition.formula,1) + "\n}";
+}
+
+formula2s(formula,underOperationPriority)
+{
+    operationPriority = ref 0;
+    result = switch(formula : Formula)
+    {
+        Any(declaration,anyFormula) : 
+        {
+            operationPriority := 0;
+            "∀ " + declaration2s(declaration) + " " + formula2s(anyFormula,5); 
+        }
+        Exists(declaration,existsFormula) :
+        {
+            operationPriority := 0;
+            "∃ " + declaration2s(declaration) + " " +  formula2s(existsFormula,5); 
+        }
+        AOr(f1,f2) :
+        {
+            operationPriority := 1;
+            formula2s(f1,1) + " || " + formula2s(f2,1);
+        }
+        AAnd(f1,f2) :
+        {
+            operationPriority := 2;
+            formula2s(f1,2) + " && " + formula2s(f2,2);
+        }
+        RelationAtom() : 
+        {
+            operationPriority := 3;
+            relationAtom2s(formula);
+        }
+        True() : 
+        {
+            operationPriority := 3;
+            "TRUE";
+        }
+        False() :
+        {
+            operationPriority := 3;
+            "FALSE";
+        }
+        ANot(f) :
+        {
+            operationPriority := 4;
+            "~" + formula2s(f,5);
+        }
+    }
+    if (^operationPriority < underOperationPriority)
+        "(" + result + ")"
+    else
+        result;
+}

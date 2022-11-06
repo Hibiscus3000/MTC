@@ -2,56 +2,62 @@ import MTC/lab11/get_type;
 
 export
 {
-    ast2sCheckRs(program : Program) -> string;
-    ast2s(program : Program) -> string;
-    ast2file(program : Program, path : string) -> bool;
+    program2sCheckRs(program : Program) -> string;
+    program2s(program : Program) -> string;
+    program2file(program : Program, path : string) -> bool;
     checkErrors(program : Program) -> string;
     body2s(body : Body,nesting : string) -> string;
     relation2s(relation : Relation,underOperationPriority : int) -> string;
-    declarations2s(declarations : [Declaration]) -> string;
+    relationAtom2s(relationAtom : RelationAtom) -> string;
+    declarations2s(declarations : [Declaration],nesting : string) -> string;
+    declaration2s(declaration : Declaration) -> string;
 
-    checkDeclaration(declarations : [Declaration]) -> Pair<string,Tree<Var,Type>>;
-    formTestErrorsMsg(relation : Relation,declsTree : Tree<Var,Type>,prefix : string,postfix : string) -> string;
+    checkDeclarations(declarations : [Declaration]) -> Pair<string,Tree<Var,Type>>;
+    checkTest(test : Test, declsTree : Tree<Var,Type>) -> string;
+    formRelationErrorsMsg(relation : Relation,declsTree : Tree<Var,Type>,prefix : string,postfix : string) -> string;
+    getRelationAtomValidity(a1 : Arithmetic, a2 : Arithmetic,declsTree : Tree<Var,Type>,
+        relationAtom : RelationAtom) -> Pair<[string],[string]>;
+    checkFunction(function : Function,declsTree : Tree<Var,Type>) -> string;
     checkExpr(expr : Expr,declsTree : Tree<Var,Type>) -> Pair<[string],[string]>;
     checkOperand(operand : Operand,declsTree : Tree<Var,Type>) -> Pair<[string],[string]>;
-    formUndeclaredVarsMsg(varNames : [string], bodyStr : string) -> string;
+    formUndeclaredVarsMsg(varNames : [string], bodyStr : string, errorMsg : string, postfix : string) -> string;
     isComplicated(expr : Expr) -> bool;
 }
 
-ast2sCheckRs(program)
+program2sCheckRs(program)
 {
     errorMsg = checkErrors(program);
     if ("" == errorMsg)
-        ast2s(program)
+        program2s(program)
     else
         errorMsg;
 }
 
-ast2s(program)
+program2s(program)
 {
-    declarations2s(program.declarations) + body2s(program.body,"");
+    declarations2s(program.declarations,"") + body2s(program.body,"");
 }
 
-ast2file(program,path)
+program2file(program,path)
 {
-    setFileContent(path,ast2sCheckRs(program));
+    setFileContent(path,program2sCheckRs(program));
 }
 
-declarations2s(declarations)
+declarations2s(declarations,nesting)
 {
     if (0 == length(declarations))
         ""
     else
     {
         currentDeclaration = declarations[length(declarations) - 1];
-        declarations2s(removeIndex(declarations,length(declarations) - 1)) + 
-            declaration2s(currentDeclaration) + "\n";
+        declarations2s(removeIndex(declarations,length(declarations) - 1),nesting) + nesting +
+            declaration2s(currentDeclaration) + ";\n";
     }
 }
 
 declaration2s(declaration)
 {
-    "VAR " + operand2s(declaration.var) + " : " + type2s(declaration.type) + ";";
+    "VAR " + operand2s(declaration.var) + " : " + type2s(declaration.type);
 }
 
 type2s(type : Type)
@@ -220,7 +226,11 @@ relation2s(relation,underOperationPriority)
             operationPriority := 3;
             "~" + relation2s(r,3);
         }
-        RelationAtom() : relationAtom2s(relation);
+        RelationAtom() : 
+        {
+            operationPriority := 4;
+            relationAtom2s(relation);
+        }
     }
     if (underOperationPriority > ^operationPriority)
         "(" + result + ")"
@@ -243,7 +253,7 @@ relationAtom2s(relationAtom)
 
 checkErrors(program)
 {
-    declsCheck = checkDeclaration(program.declarations);
+    declsCheck = checkDeclarations(program.declarations);
     errorMsg = declsCheck.first + checkBody(program.body,declsCheck.second);
     if (errorMsg != "")
         "INVALID PROGRAM!!!\n" + errorMsg
@@ -251,7 +261,7 @@ checkErrors(program)
         "";
 }
 
-checkDeclaration(decls)
+checkDeclarations(decls)
 {   
     errorMsg = ref "";
     declsTree = fold(decls,makeTree(),\tree,decl ->
@@ -282,7 +292,7 @@ checkBody(body, declsTree)
             undeclaredVariables = concat(varApplyUndeclaredVariables,exprUndeclaredVars);
             typeMismatches = concat(varApplyErrorsPair.first,exprErrorsPair.first);
             if (0 != length(undeclaredVariables))
-                formUndeclaredVarsMsg(undeclaredVariables,body2s(body,""))
+                formUndeclaredVarsMsg(undeclaredVariables,body2s(body,""),"Attempt to use undeclared variable","")
             else
             {
                 (if (isComplicated(expr) && !isInt(expr,declsTree))
@@ -313,7 +323,8 @@ checkFunction(function,declsTree)
             undeclaredVariables = exprErrorsPair.second;
             typeMismatches = exprErrorsPair.first;
             if (0 != length(undeclaredVariables))
-                formUndeclaredVarsMsg(undeclaredVariables,"print(" + expr2s(expr) + ")")
+                formUndeclaredVarsMsg(undeclaredVariables,"print(" + expr2s(expr) + ")",
+                    "Attempt to use undeclared variable","")
             else
                 {
                     (if (isSome(getExprType(expr,declsTree)))
@@ -326,37 +337,38 @@ checkFunction(function,declsTree)
     }
 }
 
-checkTest(test,declsTree : Tree<Var,Type>)
+checkTest(test,declsTree)
 {
     switch (test : Test)
     {
-        SimpleTest(relation) : formTestErrorsMsg(relation,declsTree,"(",") ?")
+        SimpleTest(relation) : formRelationErrorsMsg(relation,declsTree,"(",") ?")
         While(relation,body) :
         {   
-            formTestErrorsMsg(relation,declsTree,"while (",")")
+            formRelationErrorsMsg(relation,declsTree,"while (",")")
             + checkBody(body,declsTree);
         }
         If(relation,op_if,op_else) :
         {
-            formTestErrorsMsg(relation,declsTree,"if (",")")
+            formRelationErrorsMsg(relation,declsTree,"if (",")")
             + checkBody(op_if,declsTree)
             + if (1 == length(op_else)) checkBody(op_else[0],declsTree) else "";
         }
     }
 }
 
-formTestErrorsMsg(relation,declsTree,prefix,postfix)
+formRelationErrorsMsg(relation,declsTree,prefix,postfix)
 {
     relationValidity = checkRelation(relation,declsTree);
     undeclaredVariables = relationValidity.second;
     typeMismatches = relationValidity.first;
     if (0 != length(undeclaredVariables))
-        formUndeclaredVarsMsg(undeclaredVariables,prefix + relation2s(relation,0) + postfix)
+        formUndeclaredVarsMsg(undeclaredVariables,prefix + relation2s(relation,0) + postfix,
+            "Attempt to use undeclared variable","")
     else
         fold(typeMismatches,"",\acc,error -> acc + error + "\n");
 }
 
-checkExpr(expr,declsTree) -> Pair<[string],[string]>
+checkExpr(expr,declsTree)
 {
     switch(expr : Expr)
     {
@@ -428,7 +440,7 @@ firstOperandIsNotAnArray(functional : Functional)
     "First operand in \"" + expr2s(functional) + "\" is not an ARRAY";
 }
 
-checkOperand(operand,declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
+checkOperand(operand,declsTree)
 {
     switch(operand : Operand)
     {
@@ -484,7 +496,7 @@ checkRelationAtom(relationAtom, declsTree : Tree<Var,Type>) -> Pair<[string],[st
     }
 }
 
-getRelationAtomValidity(a1,a2,declsTree,relationAtom) -> Pair<[string],[string]>
+getRelationAtomValidity(a1,a2,declsTree,relationAtom)
 {
     undeclaredVariables = getUndeclaredVariablesArithm(a1,a2,declsTree);
     leftSideIsInt = ref true;
@@ -513,10 +525,10 @@ isDeclared(var, declsTree) -> [string]
     if (!isSome(lookupTree(declsTree,var))) [operand2s(var)] else [];
 }   
 
-formUndeclaredVarsMsg(varNames, bodyStr)
+formUndeclaredVarsMsg(varNames,bodyStr,errorMsg, postfix)
 {
     uniqueVarNames = uniq(varNames);
-    "Attempting to use undeclared variable" + (if (1 != length(uniqueVarNames)) "s " else " ")
+    errorMsg + (if (1 != length(uniqueVarNames)) "s " else " ") + postfix + " "
     + fold(uniqueVarNames,"",\acc,varName -> acc + (if (acc != "") ", " else "") + varName)
     + " in \"" + bodyStr + "\"\n";
 }
