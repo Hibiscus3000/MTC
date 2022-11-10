@@ -56,13 +56,15 @@ body2LabeledOperatorsTree(body)
 
 getEmptiesLabelsAndGotosTree(labeledOperators)
 {
-    foldi(labeledOperators,makeTree(),\i,emptiesLabelsAndReplacementsTree,labeledOperator ->
+    labelsFromEmptiesGoto = ref [];
+    fold(labeledOperators,makeTree(),\emptiesLabelsAndReplacementsTree,labeledOperator ->
         {
             switch(labeledOperator : LabeledOperator)
             {
-                LabeledEmpty(label,goto) :
+                LabeledEmpty(label,goto,can_delete) :
                 {
-                    if (0 != i)
+                    labelsFromEmptiesGoto := concat(^labelsFromEmptiesGoto,goto);
+                    if (can_delete || contains(^labelsFromEmptiesGoto,label))
                         setTree(emptiesLabelsAndReplacementsTree,label,goto)
                     else
                         emptiesLabelsAndReplacementsTree;
@@ -99,19 +101,22 @@ body2LabeledOperators1(body : Body, label, choiceWhileGoto : Maybe<int>) -> [Lab
                     refArrayPush(gotoForHeadEmpty,nextLabel);
                 concat(labeledOperators,bodyAsLabeledOperators);
             });
-            concat([LabeledEmpty(label,^gotoForHeadEmpty)],
-                arrayPush(choiceBodiesAsLabeledOperators,LabeledEmpty(choiceGoto,[either(choiceWhileGoto,choiceGoto + 1)])));
+            concat([LabeledEmpty(label,^gotoForHeadEmpty,true)],
+                arrayPush(choiceBodiesAsLabeledOperators,
+                    LabeledEmpty(choiceGoto,[either(choiceWhileGoto,choiceGoto + 1)],true)));
         }
         Iteration(sequence) : 
         {
-            sequenceAsLabeledOperators = body2LabeledOperators1(sequence,label,choiceWhileGoto);
+            sequenceAsLabeledOperators = body2LabeledOperators1(sequence,label + 1,choiceWhileGoto);
             if (0 == length(sequenceAsLabeledOperators))
                 []
             else
             {
                 sequenceLength = length(sequenceAsLabeledOperators);
                 lastOperator = sequenceAsLabeledOperators[sequenceLength - 1];
-                arrayPush(removeIndex(sequenceAsLabeledOperators,sequenceLength - 1),addToGoto(lastOperator,label));
+                concat([LabeledEmpty(label,arrayPush([label + 1],either(choiceWhileGoto,label + sequenceLength + 1)),
+                    false)], arrayPush(removeIndex(sequenceAsLabeledOperators,sequenceLength - 1),
+                        changeGoto(lastOperator,[label])));
             }
         }
         Function() : [];
@@ -123,7 +128,7 @@ test2LabeledOperators(test, label, choiceWhileGoto : Maybe<int>)
     switch (test : Test)
     {
         SimpleTest(relation) : [LabeledTest(label,relation,[label + 1],[]),
-            LabeledEmpty(label + 1,[either(choiceWhileGoto,label + 2)])]
+            LabeledEmpty(label + 1,[either(choiceWhileGoto,label + 2)],true)]
         While(relation,body) :
         {
             bodyAsLabeledOperators = body2LabeledOperators1(body,label + 1,Some(label));
@@ -131,7 +136,7 @@ test2LabeledOperators(test, label, choiceWhileGoto : Maybe<int>)
             concat([LabeledTest(label,relation,if (0 != bodyLength) [label + 1] else [label],
                 [label + bodyLength + 1])],
                     arrayPush(bodyAsLabeledOperators,
-                        LabeledEmpty(label + bodyLength + 1,[either(choiceWhileGoto,label + bodyLength + 2)])));
+                        LabeledEmpty(label + bodyLength + 1,[either(choiceWhileGoto,label + bodyLength + 2)],true)));
         }
         If(relation,op_if,op_else) :
         {
@@ -145,7 +150,7 @@ test2LabeledOperators(test, label, choiceWhileGoto : Maybe<int>)
             concat(concat([LabeledTest(label,relation,[label + 1],[label + length(opIfAsLabeledOperators) + 1])],
                     opIfAsLabeledOperators),arrayPush(opElseAsLabeledOperators,
                         LabeledEmpty(tailLabeledEmptyLabel,
-                            [either(choiceWhileGoto,tailLabeledEmptyLabel + 1)])));
+                            [either(choiceWhileGoto,tailLabeledEmptyLabel + 1)],true)));
         }
     }
 }
@@ -168,25 +173,25 @@ getNumberOfOperatorsInBody(body)
                 While(relation,body1) : 2 + getNumberOfOperatorsInBody(body1);
             }
         Sequence(bodies) : getNumberOfOperators(bodies);
-        Iteration(sequence) : getNumberOfOperatorsInBody(sequence);
-        Choice(bodies) : getNumberOfOperators(bodies) + 2; // + 2 because of head and tail Empty Operators
+        Iteration(sequence) : getNumberOfOperatorsInBody(sequence) + 1; // + 1 because of head Empty
+        Choice(bodies) : getNumberOfOperators(bodies) + 2; // + 2 because of head and tail Empties
         Function() : 0;
     }
 }
 
-addToGoto(labeledOperator,addGoto)
+changeGoto(labeledOperator, substitutionGoto)
 {
     switch(labeledOperator : LabeledOperator)
     {
         LabeledTest(label,relation,if_goto,else_goto) : labeledOperator; //should not happen
-        LabeledAssignment(label,assignment,goto) : LabeledAssignment(label,assignment,concat([addGoto],goto));
-        LabeledEmpty(label,goto) : LabeledEmpty(label,concat([addGoto],goto));
+        LabeledAssignment(label,assignment,goto) : LabeledAssignment(label,assignment,substitutionGoto);
+        LabeledEmpty(label,goto,can_delete) : LabeledEmpty(label,substitutionGoto,can_delete);
     }
 }
 
 /*
     недетерминированный выбор должен начинаться с пустого оператора, чтобы предыдущему оператору не пришлось менять goto
-    (также в случае, когда этот выбор вложен в итерацию, отстуствие пустого оператора в начале сильно усложнло бы жизнь)
+    (также в случае, когда этот выбор вложен в итерацию, отстуствие пустого оператора в начале сильно усложнило бы жизнь)
 
     x := 1;
     {
@@ -195,7 +200,8 @@ addToGoto(labeledOperator,addGoto)
     };
 
     недетерминированный выбор должен заканчиваться на пустом операторе,
-    чтобы всем телам выбора не пришлось менять goto в случае, когда этот выбор вложен в итерацию
+    чтобы всем телам выбора не пришлось менять goto в случае, когда этот выбор вложен в итерацию или недетерминированный выбор
+    (хотя случай итерации покрывается следующим комментарием)
 
     {
         {
@@ -203,6 +209,10 @@ addToGoto(labeledOperator,addGoto)
 	        y := -1 * y
         };
     }*
+
+
+    итерация должна всегда начинаться с пустого оператора, который в goto содержит также метку, которая метит операторы
+    после итерации, так как тело итерации может выполниться 0 раз, причем их нельзя убирать
 
     все тесты аналогично должны заканчиваться пустым оператором для корректности работы случая, когда
     они вложены в итерацию или недетерминированный выбор (кроме случая goto {})

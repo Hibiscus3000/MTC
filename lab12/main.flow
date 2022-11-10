@@ -5,10 +5,10 @@ import MTC/lab12/configs2s;
 
 main()
 {
-    /*nemo = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/4.nem");
-    println(program2s(nemo) + "\n\n");
+    nemo = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/11.nem");
+    println(program2s(nemo) + "\n");
     vm = NeMoProg2NVM(nemo);
-    println(NVM2s(Some(vm)) + "\n");*/
+    println(NVM2s(Some(vm)));
 
 
     /*nemo = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/9.nem");
@@ -16,7 +16,7 @@ main()
     vm = NeMoProg2NVMCheckRs(nemo);
     println(NVM2s(vm) + "\n");
     configurations = executeMaybeNVM(vm);
-    println(eitherMap(configurations,configurations2s,""));*/
+    println(eitherMap(configurations,configurations2sFull,""));*/
 
 
     /*vm = parseNVMFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/vm/5.vm");

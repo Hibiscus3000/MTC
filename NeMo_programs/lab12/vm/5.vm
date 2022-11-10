@@ -1,8 +1,9 @@
 VAR n : INT;
 VAR y : INT;
 VAR m : INT;
-0: n := 900 -> {1}
-1: if (n>=0) then{10} else{}
+0: goto {1} 
+1: n := 900 -> {2}
+2: if (n>=0) then{10} else{}
 10: m:=0 goto{11}
 11: y:=0 goto{20}
 20: if (y>n) then{30} else{21}

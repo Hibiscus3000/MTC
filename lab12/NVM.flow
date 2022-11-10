@@ -5,7 +5,7 @@ export
     LabeledOperator ::= LabeledAssignment,LabeledTest,LabeledEmpty;
         LabeledTest(label : int, relation : Relation,if_goto : [int], else_goto : [int]);
         LabeledAssignment(label : int, assignment : Assignment, goto : [int]);
-        LabeledEmpty(label : int, goto : [int]);
+        LabeledEmpty(label : int, goto : [int], can_delete : bool);
     Operator ::= OAssignment,OTest,OEmpty;
         OTest(relation : Relation,if_goto : [int], else_goto : [int]);
         OAssignment(assignment : Assignment, goto : [int]);
@@ -24,23 +24,37 @@ makeLabeledOperatorsTree(labeledOperators,emptiesLabelsAndGotosTree)
         {
             LabeledAssignment(label,assignment,goto) : 
                 setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
-                    OAssignment(assignment,replaceGoto(goto,emptiesLabelsAndGotosTree))));
+                    OAssignment(assignment,replaceGoto(label,goto,emptiesLabelsAndGotosTree,[]))));
             LabeledTest(label,relation,if_goto,else_goto) :
                 setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
-                    OTest(relation,replaceGoto(if_goto,emptiesLabelsAndGotosTree),
-                        replaceGoto(else_goto,emptiesLabelsAndGotosTree))));
-            LabeledEmpty(label,goto) :
+                    OTest(relation,replaceGoto(label, if_goto,emptiesLabelsAndGotosTree,[]),
+                        replaceGoto(label,else_goto,emptiesLabelsAndGotosTree,[]))));
+            LabeledEmpty(label,goto,can_delete) :
                 if (isSome(lookupTree(emptiesLabelsAndGotosTree,label)))
                     almoustNoEmptiesTree
                 else
                     setTree(almoustNoEmptiesTree,label,arrayPush(lookupTreeDef(almoustNoEmptiesTree,label,[]),
-                        OEmpty(replaceGoto(goto,emptiesLabelsAndGotosTree))));
+                        OEmpty(replaceGoto(label,goto,emptiesLabelsAndGotosTree,[]))));
         }
     });
 }
 
-replaceGoto(goto, emptiesLabelsAndGotosTree)
+replaceGoto(label,goto : [int], emptiesLabelsAndGotosTree, visitedEmpties)
 {
     sortUnique(fold(goto,[],\acc,gt -> concat(acc,eitherMap(lookupTree(emptiesLabelsAndGotosTree,gt),
-            \foundGoto -> replaceGoto(foundGoto,emptiesLabelsAndGotosTree),[gt]))));
+            \foundGoto ->
+            {
+                if (!contains(visitedEmpties,gt))
+                    replaceGoto(gt,foundGoto,emptiesLabelsAndGotosTree,arrayPush(visitedEmpties,label))
+                else
+                    replaceGoto(gt,arraySubtraction(foundGoto,visitedEmpties),
+                        emptiesLabelsAndGotosTree,arrayPush(visitedEmpties,label));
+            },[gt]))));
 }
+
+arraySubtraction(minuend, subtrahend)
+{
+    fold(minuend,[],\acc,element -> if (contains(subtrahend,element)) acc else arrayPush(acc,element));
+}
+
+// не могу объяснить, почему это работает

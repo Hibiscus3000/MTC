@@ -1,0 +1,151 @@
+import MTC/lab13/annotatedNeMo2s; 
+
+export
+{
+    checkAnnotatedErrors(annotatedProgram) -> string;
+}
+
+checkAnnotatedErrors(annotatedProgram : AnnotatedProgram)
+{
+    precondition = annotatedProgram.precondition;
+    postcondition = annotatedProgram.postcondition;
+    program = annotatedProgram.program;
+
+    precondDecls = concat(precondition.declarations,getBoundVariablesDecls(precondition.formula));
+    programDecls = program.declarations;
+    postCondBoundVarsDecls = getBoundVariablesDecls(postcondition.formula);
+    checkedDecls = checkDeclarations(concat3(precondDecls,programDecls,postCondBoundVarsDecls));
+
+    redeclarationMsg = checkedDecls.first;
+    if ("" != redeclarationMsg)
+        redeclarationMsg
+    else
+    {
+        programVariablesDeclsTree = decls2tree(program.declarations);
+        declsTree = setTreeValues(programVariablesDeclsTree,tree2pairs(decls2tree(precondition.declarations)));
+
+        checkAnnotatedBody(program.body,declsTree,programVariablesDeclsTree) +
+        formFormulaErrorsMsg(precondition.formula,declsTree) +
+        formFormulaErrorsMsg(postcondition.formula,declsTree);
+    }
+}
+
+checkAnnotatedBody(body,declsTree,programVariablesDeclsTree)
+{
+    switch(body : Body)
+    {
+        Assignment(varApply,expr) :
+        {
+            exprErrorsPair = checkExpr(expr,declsTree);
+            exprUndeclaredVars = exprErrorsPair.second;
+            varApplyErrorsPair = checkOperand(varApply,programVariablesDeclsTree);
+            varApplyUndeclaredVariables = varApplyErrorsPair.second;
+            typeMismatches = concat(varApplyErrorsPair.first,exprErrorsPair.first);
+            (if (0 != length(varApplyUndeclaredVariables))
+                formUndeclaredVarsMsg(varApplyUndeclaredVariables,body2s(body,""),
+                    "Attempt to use undeclared or not program variable","in left side of assignment")
+            else "")
+            +
+            (if (0 != length(exprUndeclaredVars))
+                formUndeclaredVarsMsg(exprUndeclaredVars,body2s(body,""),
+                    "Attempt to use undeclared or bound variable","in right side of assignment")
+            else "")
+            +
+            (if (0 == length(exprUndeclaredVars) && 0 == length(varApplyUndeclaredVariables))
+                (if (isComplicated(expr) && !isInt(expr,declsTree))
+                    "Right side of \"" + body2s(body,"") + "\" is not INT\n"
+                else
+                    (if (getExprType(varApply,declsTree) != getExprType(expr,declsTree))
+                        "Types of right and left sides of assignment \"" + body2s(body,"") + "\" do not match\n"
+                    else
+                        ""))
+                + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n")
+            else "");
+        }
+        Sequence(bodies) : fold(bodies,"",\acc,body1 -> acc + checkAnnotatedBody(body1,declsTree,
+                programVariablesDeclsTree));
+        Choice(bodies) : fold(bodies,"",\acc,body1 -> acc + checkAnnotatedBody(body1,declsTree,
+                programVariablesDeclsTree));
+        Iteration(sequence) : checkAnnotatedBody(sequence,declsTree,programVariablesDeclsTree);
+        Test() : checkTest(body,declsTree);
+        Function() : checkFunction(body,declsTree);
+    }
+}
+
+formFormulaErrorsMsg(formula,declsTree)
+{
+    formulaValidity = checkFormula(formula,declsTree);
+    undeclaredVariables = formulaValidity.second;
+    typeMismatches = formulaValidity.first;
+    if (0 != length(undeclaredVariables))
+        formUndeclaredVarsMsg(undeclaredVariables,"(" + formula2s(formula,1) + ")",
+            "Attempt to use undeclared variable","")
+    else
+        fold(typeMismatches,"",\acc,error -> acc + error + "\n");
+}
+
+checkFormula(formula,declsTree)
+{
+    switch(formula : Formula)
+    {
+        AOr(f1,f2) : getFormulaValidity(f1,f2,declsTree);
+        AAnd(f1,f2) : getFormulaValidity(f1,f2,declsTree);
+        ANot(f) : checkFormula(f,declsTree)
+        ARelationAtom() : checkARelationAtom(formula,declsTree);
+    }
+}
+
+getFormulaValidity(r1,r2,declsTree)
+{
+    r1Pair = checkFormula(r1,declsTree);
+    r2Pair = checkFormula(r2,declsTree);
+    Pair(concat(r1Pair.first,r2Pair.first),concat(r1Pair.second,r2Pair.second));
+}
+
+checkARelationAtom(relationAtom, declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
+{
+    switch(relationAtom : ARelationAtom)
+    {
+        LesserEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        GreaterEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Lesser(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Greater(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Equals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        NotEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        Any(declaration,anyFormula) : checkFormula(anyFormula,setTree(declsTree,declaration.var,declaration.type));
+        Exists(declaration,existsFormula) :
+            checkFormula(existsFormula,setTree(declsTree,declaration.var,declaration.type));
+        True() : Pair([""],[""]);
+        False() : Pair([""],[""]);
+    }
+}
+
+decls2tree(declarations)
+{
+    fold(declarations,makeTree(),\tree,declaration -> setTree(tree,declaration.var,declaration.type));
+}
+
+getFreeVarsDeclsTree(precondition)
+{
+    decls2tree(precondition.declarations);   
+}
+
+getBoundVariablesDecls(formula)
+{
+    switch (formula : Formula) 
+    {
+        Any(declaration,anyFormula) : concat([declaration],getBoundVariablesDecls(anyFormula));
+        Exists(declaration,existsFormula) : concat([declaration],getBoundVariablesDecls(existsFormula));
+        AOr(f1,f2) : concat(getBoundVariablesDecls(f1),getBoundVariablesDecls(f2));
+        AAnd(f1,f2) : concat(getBoundVariablesDecls(f1),getBoundVariablesDecls(f2));
+        ANot(f) : getBoundVariablesDecls(f);
+        Lesser(a1,a2) : [];
+        LesserEquals(a1,a2) : [];
+        Greater(a1,a2) : [];
+        GreaterEquals(a1,a2) : [];
+        Equals(a1,a2) : [];
+        NotEquals(a1,a2) : [];
+        True() : [];
+        False() : [];
+    }
+}

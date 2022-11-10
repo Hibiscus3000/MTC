@@ -7,12 +7,13 @@ export
         ArrayValue(indexValueTree : Tree<Value,Value>);
         Undefined();
     Configuration(num : int, label : int, stateSpace : StateSpace, type : ConfigurationType);
-    ConfigurationType ::= Initial,Common,Final,Avost,Exceptional;
+    ConfigurationType ::= Initial,Common,Final,Avost,Exceptional,Repeated;
         Initial();
         Common(cameFrom : int);
         Final(cameFrom : int);
         Avost(cameFrom : int);
         Exceptional(msg : string,cameFrom : int);
+        Repeated(cameFrom : int);
 
     executeMaybeNVM(maybeVMProgram : Maybe<VMProgram>) -> Maybe<[Configuration]>;
     executeNVM(vmProgram : VMProgram) -> Maybe<[Configuration]>;
@@ -56,10 +57,14 @@ executeNVMReqursion(configNum,labeledOperatorsTree,queue,visited : [Configuratio
     {
         nextConfigNum = ref configNum;
         current = ref queue[0];
+        if (configurationRepeats(^current,visited))
+            current := Configuration(^current.num,^current.label,^current.stateSpace,
+                Repeated(getCameFrom(^current.type)));
         tail = removeIndex(queue,0);
         currentLabeledOperatorsSet = lookupTree(labeledOperatorsTree,^current.label);
         newQueue =
-            if ("Avost" == ^current.type.structname || "Exceptional" == ^current.type.structname)
+            if ("Avost" == ^current.type.structname || "Exceptional" == ^current.type.structname
+                || "Repeated" == ^current.type.structname)
                 tail
             else
                 eitherFn(currentLabeledOperatorsSet, \operators -> fold(operators,tail,
@@ -378,5 +383,16 @@ getCameFrom(configurationType)
         Common(cameFrom) : cameFrom;
         Avost(cameFrom) : cameFrom;
         Exceptional(msg,cameFrom) : cameFrom;
+        Repeated(cameFrom) : cameFrom;
     }
+}
+
+configurationRepeats(config,visited)
+{
+    fold(visited,false,\acc,visitedConfig -> if (configEquals(config,visitedConfig)) true else acc);
+}
+
+configEquals(c1,c2)
+{
+    c1.label == c2.label && c1.stateSpace == c2.stateSpace;
 }

@@ -528,7 +528,7 @@ isDeclared(var, declsTree) -> [string]
 formUndeclaredVarsMsg(varNames,bodyStr,errorMsg, postfix)
 {
     uniqueVarNames = uniq(varNames);
-    errorMsg + (if (1 != length(uniqueVarNames)) "s " else " ") + postfix + " "
+    errorMsg + (if (1 != length(uniqueVarNames)) "s " else " ") + (if ("" != postfix) postfix + " " else "")
     + fold(uniqueVarNames,"",\acc,varName -> acc + (if (acc != "") ", " else "") + varName)
     + " in \"" + bodyStr + "\"\n";
 }

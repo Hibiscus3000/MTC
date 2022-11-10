@@ -1,4 +1,4 @@
-nvm = declarations:decls ws* (assignment | test)*:operators
+nvm = declarations:decls ws* (assignment | test | empty)*:operators
     {VMProgram(:decls,buildLabeledOperatorsTree(:operators))};
 
 declarations = '{' declaration*:decls '}' {:decls} | declaration*;
@@ -11,6 +11,7 @@ assignment = int:label ws* ':' ws* apply_var:av ws* ":=" expr:e
     ws* ("goto" | "->") goto:goto {LabeledAssignment(:label,Assignment(:av,:e),:goto)};
 test = int:label ws* ':' ws* "if" ws* '(' ws* or:or ws* ')' ws*
     "then" goto:op_if "else" goto:op_else {LabeledTest(:label,:or,:op_if,:op_else)};
+empty = int:label ws* ':' ws* ("goto" | "->") goto:goto {makeEmpty(:label,:goto)};
 
 expr = update | arithmetic;
 

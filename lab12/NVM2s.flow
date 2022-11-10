@@ -34,7 +34,7 @@ operator2s(operator)
         OAssignment(assignment,goto) : body2s(assignment,"") + " goto " + goto2s(goto);
         OTest(relation,if_goto,else_goto) : 
             "if (" + relation2s(relation,0) + ") then " + goto2s(if_goto) + " else " + goto2s(else_goto);
-        OEmpty(goto) : goto2s(goto);
+        OEmpty(goto) : "goto " + goto2s(goto);
     }
 }
 

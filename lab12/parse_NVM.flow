@@ -9,6 +9,7 @@ export
     checkNVMRs(vmProgram : VMProgram) -> bool;
 
     buildLabeledOperatorsTree(xs : [flow]) -> Tree<int,[Operator]>;
+    makeEmpty(xs: [flow]) -> LabeledEmpty;
 }
 
 NVMGrammarOps : ref Maybe<[PegOp]> = ref None();
@@ -18,12 +19,18 @@ specialPegActions =
 	tSub = setTree(defaultPegActions.t, "buildSub", buildSub);
 	tDiv = setTree(tSub,"buildDiv",buildDiv);
     tLabeledOperatorsTree = setTree(tDiv,"buildLabeledOperatorsTree",buildLabeledOperatorsTree);
-    SemanticActions(tLabeledOperatorsTree);
+    tEmpty = setTree(tLabeledOperatorsTree,"makeEmpty",makeEmpty);
+    SemanticActions(tEmpty);
 }
 
 buildLabeledOperatorsTree(xs)
 {
     makeLabeledOperatorsTree(xs[0],makeTree());
+}
+
+makeEmpty(xs)
+{
+    LabeledEmpty(xs[0],xs[1],false);
 }
 
 NVMGrammar()

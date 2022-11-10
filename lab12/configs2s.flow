@@ -102,5 +102,6 @@ getErrorMsg(configurationType)
         Final(cameFrom) : "";
         Avost(cameFrom) : "";
         Exceptional(msg,cameFrom) : msg;
+        Repeated(cameFrom) : "";
     }
 }

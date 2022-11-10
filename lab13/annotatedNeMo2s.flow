@@ -1,0 +1,75 @@
+import MTC/lab13/annotatedNeMo;
+
+export
+{
+    annotatedNeMo2str(annotatedProgram : AnnotatedProgram) -> string;
+    formula2s(formula : Formula,underOperationPriority : int) -> string;
+}
+
+annotatedNeMo2str(annotatedProgram)
+{
+    precondition2s(annotatedProgram.precondition) + "\n" + program2s(annotatedProgram.program) + "\n"
+        + postcondition2s(annotatedProgram.postcondition);
+}
+
+precondition2s(precondition)
+{
+    "{\n" + declarations2s(precondition.declarations,"\t") + "\t" + formula2s(precondition.formula,1) + "\n}";
+}
+
+postcondition2s(postcondition : PostCondition)
+{
+    "{\n\t" + formula2s(postcondition.formula,1) + "\n}";
+}
+
+formula2s(formula,underOperationPriority)
+{
+    operationPriority = ref 0;
+    result = switch(formula : Formula)
+    {
+        Any(declaration,anyFormula) : 
+        {
+            operationPriority := 0;
+            "∀ " + declaration2s(declaration) + " " + formula2s(anyFormula,5); 
+        }
+        Exists(declaration,existsFormula) :
+        {
+            operationPriority := 0;
+            "∃ " + declaration2s(declaration) + " " +  formula2s(existsFormula,5); 
+        }
+        AOr(f1,f2) :
+        {
+            operationPriority := 1;
+            formula2s(f1,1) + " || " + formula2s(f2,1);
+        }
+        AAnd(f1,f2) :
+        {
+            operationPriority := 2;
+            formula2s(f1,2) + " && " + formula2s(f2,2);
+        }
+        RelationAtom() : 
+        {
+            operationPriority := 3;
+            relationAtom2s(formula);
+        }
+        True() : 
+        {
+            operationPriority := 3;
+            "TRUE";
+        }
+        False() :
+        {
+            operationPriority := 3;
+            "FALSE";
+        }
+        ANot(f) :
+        {
+            operationPriority := 4;
+            "~" + formula2s(f,5);
+        }
+    }
+    if (^operationPriority < underOperationPriority)
+        "(" + result + ")"
+    else
+        result;
+}
