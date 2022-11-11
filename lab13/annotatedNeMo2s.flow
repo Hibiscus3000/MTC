@@ -1,15 +1,63 @@
 import MTC/lab13/annotatedNeMo;
+import MTC/lab11/NeMo2s;
 
 export
 {
-    annotatedNeMo2str(annotatedProgram : AnnotatedProgram) -> string;
+    annotatedNeMo2s(annotatedProgram : AnnotatedProgram) -> string;
     formula2s(formula : Formula,underOperationPriority : int) -> string;
 }
 
-annotatedNeMo2str(annotatedProgram)
+annotatedNeMo2s(annotatedProgram)
 {
-    precondition2s(annotatedProgram.precondition) + "\n" + program2s(annotatedProgram.program) + "\n"
+    precondition2s(annotatedProgram.precondition) + "\n" + nemoProgram2s(annotatedProgram.program) + "\n"
         + postcondition2s(annotatedProgram.postcondition);
+}
+
+nemoProgram2s(nemoProgram)
+{
+    declarations2s(nemoProgram.declarations,"") + annotatedBody2s(nemoProgram.annotatedBody,"");
+}
+
+annotatedBody2s(annotatedBody,nesting)
+{
+    switch(annotatedBody : AnnotatedBody)
+    {
+        Assignment(varApply,expr) : body2s(annotatedBody,nesting);
+        AnnotatedTest() : annotatedTest2s(annotatedBody,nesting);
+        AnnotatedSequence(annotatedBodies) :
+            nesting + "{\n"
+            + fold(annotatedBodies,"",\acc,annBody -> acc + annotatedBody2s(annBody,nesting + "\t")
+                + (if (annBody.structname == "AnnotatedSequence") "" else ";") + "\n")
+            + nesting + "}";
+        AnnotatedChoice(annotatedBodies) :
+        {
+            firstBody = annotatedBodies[0];
+            nesting + "{\n"
+            + fold(removeIndex(annotatedBodies,0),annotatedBody2s(firstBody,nesting + "\t"),
+                \acc,annBody -> acc + " U\n" + annotatedBody2s(annBody,nesting + "\t"))
+            + "\n" + nesting + "}";
+        }
+        AnnotatedIteration(invariant,annotatedSequence) :
+            nesting + "@{\n" + nesting + "\t" + formula2s(invariant,0) + "\n" + nesting + "}\n"
+                + annotatedBody2s(annotatedSequence,nesting) + "*";
+    }
+}
+
+annotatedTest2s(annotatedTest,nesting)
+{
+    switch(annotatedTest : AnnotatedTest)
+    {
+        SimpleTest(relation) : nesting + test2s(annotatedTest,nesting);
+        AnnotatedIf(relation,op_if,op_else) :
+            nesting + "if (" + relation2s(relation,0) + ")\n" + annotatedBody2s(op_if,nesting
+                + (if (op_if.structname != "AnnotatedSequence") "\t" else ""))
+            + (if (1 == length(op_else)) "\n" + nesting + "else\n" + annotatedBody2s(op_else[0],nesting
+                    + (if (op_else[0].structname != "AnnotatedSequence") "\t" else "")) else "");
+        AnnotatedWhile(invariant,relation,body) :
+            nesting + "@{\n" + nesting + "\t" + formula2s(invariant,0) + "\n" + nesting + "}\n" + nesting
+                + "while (" + relation2s(relation,0) + ")\n" + annotatedBody2s(body, nesting
+                    + (if (body.structname != "AnnotatedSequence") "\t" else ""));
+    }
 }
 
 precondition2s(precondition)
@@ -30,42 +78,52 @@ formula2s(formula,underOperationPriority)
         Any(declaration,anyFormula) : 
         {
             operationPriority := 0;
-            "∀ " + declaration2s(declaration) + " " + formula2s(anyFormula,5); 
+            "∀ " + declaration2s(declaration) + " " + formula2s(anyFormula,7); 
         }
         Exists(declaration,existsFormula) :
         {
             operationPriority := 0;
-            "∃ " + declaration2s(declaration) + " " +  formula2s(existsFormula,5); 
+            "∃ " + declaration2s(declaration) + " " +  formula2s(existsFormula,7); 
+        }
+        AEquivalent(f1,f2) :
+        {
+            operationPriority := 1;
+            formula2s(f1,1) + " <-> " + formula2s(f2,1);
+        }
+        AImplication(f1,f2) :
+        {
+            operationPriority := 2;
+            formula2s(f1,2) + " -> " + formula2s(f2,2);
         }
         AOr(f1,f2) :
         {
-            operationPriority := 1;
-            formula2s(f1,1) + " || " + formula2s(f2,1);
+            operationPriority := 3;
+            formula2s(f1,3) + " || " + formula2s(f2,3);
         }
         AAnd(f1,f2) :
         {
-            operationPriority := 2;
-            formula2s(f1,2) + " && " + formula2s(f2,2);
+            operationPriority := 4;
+            formula2s(f1,4) + " && " + formula2s(f2,4);
         }
         RelationAtom() : 
         {
-            operationPriority := 3;
+            operationPriority := 5;
             relationAtom2s(formula);
         }
         True() : 
         {
-            operationPriority := 3;
+            operationPriority := 5;
             "TRUE";
         }
         False() :
         {
-            operationPriority := 3;
+            operationPriority := 5;
             "FALSE";
         }
         ANot(f) :
         {
-            operationPriority := 4;
-            "~" + formula2s(f,5);
+            operationPriority := 6;
+            "~" + formula2s(f,7);
         }
     }
     if (^operationPriority < underOperationPriority)

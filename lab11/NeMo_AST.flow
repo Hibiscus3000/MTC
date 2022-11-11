@@ -51,9 +51,6 @@ export
     VarApply ::= Var, Apply;
         Int(i : int);
         Var(s : string);
-    
-    parseNeMo(nemoProg : string) -> Program;
-    parseNeMoFile(path : string) -> Program;
 
     buildSub(xs : [flow]) -> Arithmetic;
     buildDiv(xs : [flow]) -> Arithmetic;
@@ -65,6 +62,8 @@ export
         tChoice = setTree(tDiv,"buildChoice",buildChoice);
 	    SemanticActions(tChoice);
     }
+
+    NeMoGrammar() -> [PegOp];
 }
 
 NeMoGrammarOps : ref Maybe<[PegOp]> = ref None();
@@ -89,14 +88,4 @@ NeMoGrammar()
 	onlyOnce(NeMoGrammarOps, \ -> {
 		compilePegGrammar("#include MTC/lab11/NeMo_grammar.lingo");
 	});
-}
-
-parseNeMo(nemoProg)
-{
-    parsic(NeMoGrammar(),nemoProg,subDivChoicePegActions);
-}
-
-parseNeMoFile(path)
-{
-    parseNeMo(getFileContent(path));
 }

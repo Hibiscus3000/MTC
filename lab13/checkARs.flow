@@ -1,4 +1,5 @@
 import MTC/lab13/annotatedNeMo2s; 
+import MTC/lab11/check_errors;
 
 export
 {
@@ -24,15 +25,15 @@ checkAnnotatedErrors(annotatedProgram : AnnotatedProgram)
         programVariablesDeclsTree = decls2tree(program.declarations);
         declsTree = setTreeValues(programVariablesDeclsTree,tree2pairs(decls2tree(precondition.declarations)));
 
-        checkAnnotatedBody(program.body,declsTree,programVariablesDeclsTree) +
+        checkAnnotatedBody(program.annotatedBody,declsTree,programVariablesDeclsTree) +
         formFormulaErrorsMsg(precondition.formula,declsTree) +
         formFormulaErrorsMsg(postcondition.formula,declsTree);
     }
 }
 
-checkAnnotatedBody(body,declsTree,programVariablesDeclsTree)
+checkAnnotatedBody(annotatedBody,declsTree,programVariablesDeclsTree)
 {
-    switch(body : Body)
+    switch(annotatedBody : AnnotatedBody)
     {
         Assignment(varApply,expr) :
         {
@@ -42,33 +43,51 @@ checkAnnotatedBody(body,declsTree,programVariablesDeclsTree)
             varApplyUndeclaredVariables = varApplyErrorsPair.second;
             typeMismatches = concat(varApplyErrorsPair.first,exprErrorsPair.first);
             (if (0 != length(varApplyUndeclaredVariables))
-                formUndeclaredVarsMsg(varApplyUndeclaredVariables,body2s(body,""),
+                formUndeclaredVarsMsg(varApplyUndeclaredVariables,body2s(annotatedBody,""),
                     "Attempt to use undeclared or not program variable","in left side of assignment")
             else "")
             +
             (if (0 != length(exprUndeclaredVars))
-                formUndeclaredVarsMsg(exprUndeclaredVars,body2s(body,""),
+                formUndeclaredVarsMsg(exprUndeclaredVars,body2s(annotatedBody,""),
                     "Attempt to use undeclared or bound variable","in right side of assignment")
             else "")
             +
             (if (0 == length(exprUndeclaredVars) && 0 == length(varApplyUndeclaredVariables))
                 (if (isComplicated(expr) && !isInt(expr,declsTree))
-                    "Right side of \"" + body2s(body,"") + "\" is not INT\n"
+                    "Right side of \"" + body2s(annotatedBody,"") + "\" is not INT\n"
                 else
                     (if (getExprType(varApply,declsTree) != getExprType(expr,declsTree))
-                        "Types of right and left sides of assignment \"" + body2s(body,"") + "\" do not match\n"
+                        "Types of right and left sides of assignment \"" + body2s(annotatedBody,"") + "\" do not match\n"
                     else
                         ""))
                 + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n")
             else "");
         }
-        Sequence(bodies) : fold(bodies,"",\acc,body1 -> acc + checkAnnotatedBody(body1,declsTree,
-                programVariablesDeclsTree));
-        Choice(bodies) : fold(bodies,"",\acc,body1 -> acc + checkAnnotatedBody(body1,declsTree,
-                programVariablesDeclsTree));
-        Iteration(sequence) : checkAnnotatedBody(sequence,declsTree,programVariablesDeclsTree);
-        Test() : checkTest(body,declsTree);
-        Function() : checkFunction(body,declsTree);
+        AnnotatedTest() : checkAnnotatedTest(annotatedBody,declsTree,programVariablesDeclsTree);
+        AnnotatedSequence(annotatedBodies) : fold(annotatedBodies,"",
+            \acc,annBody -> acc + checkAnnotatedBody(annBody,declsTree,programVariablesDeclsTree));
+        AnnotatedChoice(annotatedBodies) : fold(annotatedBodies,"",
+            \acc,annBody -> acc + checkAnnotatedBody(annBody,declsTree,programVariablesDeclsTree));
+        AnnotatedIteration(invariant,sequence) :
+            formFormulaErrorsMsg(invariant,declsTree) 
+                + checkAnnotatedBody(sequence,declsTree,programVariablesDeclsTree);
+    }
+}
+
+checkAnnotatedTest(annotatedTest,declsTree,programVariablesDeclsTree)
+{
+    switch(annotatedTest : AnnotatedTest)
+    {
+        SimpleTest(relation) : checkTest(annotatedTest,declsTree);
+        AnnotatedWhile(invariant,relation,annotatedBody) :
+            formFormulaErrorsMsg(invariant,declsTree) + formRelationErrorsMsg(relation,declsTree,"while (",")")
+                + checkAnnotatedBody(annotatedBody,declsTree,programVariablesDeclsTree);
+        AnnotatedIf(relation,op_if,op_else) :
+        {
+            formRelationErrorsMsg(relation,declsTree,"if (",")")
+            + checkAnnotatedBody(op_if,declsTree,programVariablesDeclsTree)
+            + if (1 == length(op_else)) checkAnnotatedBody(op_else[0],declsTree,programVariablesDeclsTree) else "";
+        }
     }
 }
 
@@ -88,10 +107,12 @@ checkFormula(formula,declsTree)
 {
     switch(formula : Formula)
     {
+        AEquivalent(f1,f2) : getFormulaValidity(f1,f2,declsTree);
+        AImplication(f1,f2) : getFormulaValidity(f1,f2,declsTree);
         AOr(f1,f2) : getFormulaValidity(f1,f2,declsTree);
         AAnd(f1,f2) : getFormulaValidity(f1,f2,declsTree);
         ANot(f) : checkFormula(f,declsTree)
-        ARelationAtom() : checkARelationAtom(formula,declsTree);
+        FormulaAtom() : checkFormulaAtom(formula,declsTree);
     }
 }
 
@@ -102,16 +123,16 @@ getFormulaValidity(r1,r2,declsTree)
     Pair(concat(r1Pair.first,r2Pair.first),concat(r1Pair.second,r2Pair.second));
 }
 
-checkARelationAtom(relationAtom, declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
+checkFormulaAtom(formulaAtom, declsTree : Tree<Var,Type>) -> Pair<[string],[string]>
 {
-    switch(relationAtom : ARelationAtom)
+    switch(formulaAtom : FormulaAtom)
     {
-        LesserEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
-        GreaterEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
-        Lesser(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
-        Greater(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
-        Equals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
-        NotEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,relationAtom);
+        LesserEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,formulaAtom);
+        GreaterEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,formulaAtom);
+        Lesser(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,formulaAtom);
+        Greater(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,formulaAtom);
+        Equals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,formulaAtom);
+        NotEquals(a1,a2) : getRelationAtomValidity(a1,a2,declsTree,formulaAtom);
         Any(declaration,anyFormula) : checkFormula(anyFormula,setTree(declsTree,declaration.var,declaration.type));
         Exists(declaration,existsFormula) :
             checkFormula(existsFormula,setTree(declsTree,declaration.var,declaration.type));
@@ -136,6 +157,8 @@ getBoundVariablesDecls(formula)
     {
         Any(declaration,anyFormula) : concat([declaration],getBoundVariablesDecls(anyFormula));
         Exists(declaration,existsFormula) : concat([declaration],getBoundVariablesDecls(existsFormula));
+        AEquivalent(f1,f2) : concat(getBoundVariablesDecls(f1),getBoundVariablesDecls(f2));
+        AImplication(f1,f2) : concat(getBoundVariablesDecls(f1),getBoundVariablesDecls(f2));
         AOr(f1,f2) : concat(getBoundVariablesDecls(f1),getBoundVariablesDecls(f2));
         AAnd(f1,f2) : concat(getBoundVariablesDecls(f1),getBoundVariablesDecls(f2));
         ANot(f) : getBoundVariablesDecls(f);

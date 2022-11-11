@@ -1,0 +1,44 @@
+import MTC/lab11/check_errors;
+
+export 
+{
+    program2file(program : Program, path : string) -> bool;
+    parseNeMo(nemoProg : string) -> Maybe<Program>;
+    parseNeMoFile(path : string) -> Maybe<Program>;
+    parseNeMoNoRs(nemoProg : string) -> Program;
+    parseNeMoFileNoRs(path : string) -> Program;    
+}
+
+parseNeMo(nemoProg)
+{
+    program = parsic(NeMoGrammar(),nemoProg,subDivChoicePegActions);
+    errorsMsg = checkErrors(program);
+    if ("" != errorsMsg)
+    {
+        println(errorsMsg);
+        println(program2s(program));
+        None();
+    }
+    else
+        Some(program);
+}
+
+parseNeMoFile(path)
+{
+    parseNeMo(getFileContent(path));
+}
+
+program2file(program,path)
+{
+    setFileContent(path,checkErrors(program) + program2s(program));
+}
+
+parseNeMoNoRs(nemoProg)
+{
+    parsic(NeMoGrammar(),nemoProg,subDivChoicePegActions);
+}
+
+parseNeMoFileNoRs(path)
+{
+    parseNeMoNoRs(getFileContent(path));
+}

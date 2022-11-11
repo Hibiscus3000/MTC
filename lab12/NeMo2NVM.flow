@@ -1,5 +1,5 @@
 import MTC/lab12/NVM;
-import MTC/lab11/NeMo2s;
+import MTC/lab11/parse_NeMo;
 
 export
 {
@@ -30,22 +30,22 @@ NeMoProg2NVMCheckRs(program)
 
 NeMoFile2NVM(filename)
 {
-    NeMoProg2NVM(parseNeMoFile(filename));
+    NeMoProg2NVM(parseNeMoFileNoRs(filename));
 }
 
 NeMoFile2NVMCheckRs(filename)
 {
-    NeMoProg2NVMCheckRs(parseNeMoFile(filename));
+    NeMoProg2NVMCheckRs(parseNeMoFileNoRs(filename));
 }
 
 NeMoStr2NVM(nemo)
 {
-    NeMoProg2NVM(parseNeMo(nemo));
+    NeMoProg2NVM(parseNeMoNoRs(nemo));
 }
 
 NeMoStr2NVMCheckRs(nemo)
 {
-    NeMoProg2NVMCheckRs(parseNeMo(nemo));
+    NeMoProg2NVMCheckRs(parseNeMoNoRs(nemo));
 }
 
 body2LabeledOperatorsTree(body)

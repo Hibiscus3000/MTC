@@ -1,17 +1,32 @@
-import MTC/lab11/NeMo2s;
+import MTC/lab11/NeMo_AST;
 
 export
 {
-    AnnotatedProgram(precondition : PreCondition, program : Program, postcondition : PostCondition);
-    Formula ::= AOr, AAnd, ANot, ARelationAtom;
+    AnnotatedProgram(precondition : PreCondition, program : NeMoProgram, postcondition : PostCondition);
+
+    NeMoProgram(declarations : [Declaration], annotatedBody : AnnotatedBody);
+
+    AnnotatedBody ::= Assignment, AnnotatedTest, AnnotatedSequence, AnnotatedChoice, AnnotatedIteration;
+        AnnotatedSequence(annotatedBodies : [AnnotatedBody]);
+        AnnotatedChoice(annotatedBodies : [AnnotatedBody]);
+        AnnotatedIteration(invariant : Formula, annotatedSequence : AnnotatedSequence);
+    
+    AnnotatedTest ::= SimpleTest, AnnotatedWhile, AnnotatedIf;
+        AnnotatedWhile(invariant : Formula, relation : Relation, annotatedBody : AnnotatedBody);
+        AnnotatedIf(relation : Relation, op_if : AnnotatedBody, op_else : [AnnotatedBody]);
+
+    Formula ::= AEquivalent, AImplication, AOr, AAnd, ANot, FormulaAtom;
+        AImplication(f1 : Formula, f2 : Formula);
+        AEquivalent(f1 : Formula, f2 : Formula);
         AOr(f1 : Formula, f2 : Formula);
         AAnd(f1 : Formula, f2 : Formula);
-        ANot(f : Formula);
-    ARelationAtom ::= RelationAtom, Any, Exists, True, False;
+        ANot(f : Formula);    
+    FormulaAtom ::= RelationAtom, Any, Exists, True, False;
         Any(declaration : Declaration,formula : Formula);
         Exists(declaration : Declaration,formula : Formula);
         True();
         False();
+
     PreCondition(declarations : [Declaration],formula : Formula);
     PostCondition(formula : Formula);
 

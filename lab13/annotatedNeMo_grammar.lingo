@@ -1,20 +1,22 @@
 annotated_program = ws* precondition:pre ws* program:program postcondition:post ws*
     {AnnotatedProgram(:pre,:program,:post)};
-precondition = '{' ws* declarations:decls ws* ann_or:or ws* '}' {PreCondition(:decls,:or)};
-postcondition = '{' ws* ann_or:or ws* '}' {PostCondition(:or)};
+precondition = '{' ws* declarations:decls ws* ann_eqv:eqv ws* '}' {PreCondition(:decls,:eqv)};
+postcondition = '{' ws* ann_eqv:eqv ws* '}' {PostCondition(:eqv)};
 
+ann_eqv = ann_impl:impl ws+ "<->" ws+ ann_eqv:eqv {AEquivalent(:impl,:eqv)} | ann_impl;
+ann_impl = ann_or:or ws+ "->" ws+ ann_impl:impl {AImplication(:or,:impl)} | ann_or;
 ann_or = ann_and:and ws+ "||" ws+ ann_or:or {AOr(:and,:or)} | ann_and;
 ann_and = ann_not:not ws+ "&&" ws+ ann_and:and {AAnd(:not,:and)} | ann_not;
-ann_not = '~' ws* ann_relation_atom:ra {ANot(:ra)} | ann_relation_atom | '(' ws* ann_or:or ws* ')' {:or};
+ann_not = '~' ws* ann_relation_atom:ra {ANot(:ra)} | ann_relation_atom | '(' ws* ann_eqv:eqv ws* ')' {:eqv};
 ann_relation_atom = relation_atom
-    | ('∃' | 'E') ws+ declaration:d ws* '(' ws* ann_or:or ws* ')' {Exists(:d,:or)}
-    | ('∀' | 'A') ws+ declaration:d ws* '(' ws* ann_or:or ws* ')' {Any(:d,:or)}
+    | ('∃' | 'E') ws+ declaration:d ws* '(' ws* ann_eqv:eqv ws* ')' {Exists(:d,:eqv)}
+    | ('∀' | 'A') ws+ declaration:d ws* '(' ws* ann_eqv:eqv ws* ')' {Any(:d,:eqv)}
     | "TRUE" {True()}
     | "FALSE" {False()};
 
 program = declarations:decls ws* sequence:sequence ws* {Program(:decls,:sequence)};
 
-declarations = '{' declaration_semicolon*:decls '}' {:decls} | declaration_semicolon*;
+declarations = '{' ws* declaration_semicolon*:decls '}' {:decls} | declaration_semicolon*;
 declaration_semicolon = declaration:d ';' ws* {:d};
 declaration = "VAR" ws* var:v ws* ':' ws* type:t {Declaration(:v,:t)};
 type = "INT" {IntType()}
@@ -22,18 +24,15 @@ type = "INT" {IntType()}
     | '[' type:t ']' {ArrayType(IntType(),:t)};
 
 body_seq = body | sequence;
-body = function
-    | test
+body = test
     | assignment
-    | '{' ws* body_seq:b choice+:chs ws* '}' {buildChoice(:b,:chs)}
+    | '{' ws* body_seq:b choice+:chs ws* '}' {buildAnnotatedChoice(:b,:chs)}
     | iteration;
 choice = ws+ 'U' ws+ body_seq:b {:b};
-sequence = '{' ws* subsequence*:ss '}' {Sequence(:ss)};
-iteration = '{' ws* subsequence+:ss "}*" {Iteration(Sequence(:ss))};
+sequence = '{' ws* subsequence*:ss '}' {AnnotatedSequence(:ss)};
+iteration = '@' ws* '{' ws* ann_eqv:invariant ws* '}' ws* '{' ws* subsequence+:ss "}*"
+    {AnnotatedIteration(:invariant, AnnotatedSequence(:ss))};
 subsequence = body:b ws* ';' ws+ {:b} | sequence:s ws+ {:s};
-
-function = print;
-print = "print(" expr:e ')' {Print(:e)};
 
 assignment = apply_var:av ws* ":=" expr:e {Assignment(:av,:e)};
 expr = update | arithmetic;
@@ -54,8 +53,9 @@ update = ws* "UPD(" (update | apply_var):array ',' ws? expr:index ',' ws? expr:n
 
 test = simple_test | while | if;
 simple_test = '(' ws* or:or ws* ") ?" {SimpleTest(:or)};
-while = "while" ws+ '(' or:or ')' ws+ body_seq:b {While(:or,:b)};
-if = "if" ws+ '(' or:or ')' ws+ body_seq:if else?:else {If(:or,:if,:else)};
+while = '@' ws* '{' ws* ann_eqv:invariant ws* '}' ws* "while" ws+ '(' or:or ')' ws+ body_seq:b
+    {AnnotatedWhile(:invariant,:or,:b)};
+if = "if" ws+ '(' or:or ')' ws+ body_seq:if else?:else {AnnotatedIf(:or,:if,:else)};
 else = ws* "else" ws+ body_seq:b {:b};
 
 or = and:and ws+ "||" ws+ or:or {Or(:and,:or)} | and;

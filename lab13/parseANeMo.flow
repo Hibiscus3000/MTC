@@ -4,18 +4,33 @@ export
 {
     parseAnnotatedNeMo(annotatedNemo : string) -> Maybe<AnnotatedProgram>;
     parseAnnotatedNeMoFile(path : string) -> Maybe<AnnotatedProgram>;
+
+    buildAnnotatedChoice(xs : [flow]) -> AnnotatedChoice;
+
+    annotatedPegActions = 
+    {
+        tSub = setTree(defaultPegActions.t, "buildSub", buildSub);
+	    tDiv = setTree(tSub,"buildDiv",buildDiv);
+        tChoice = setTree(tDiv,"buildAnnotatedChoice",buildAnnotatedChoice);
+	    SemanticActions(tChoice);
+    }
+}
+
+buildAnnotatedChoice(xs)
+{
+    AnnotatedChoice(concat([xs[0]],xs[1]));
 }
 
 parseAnnotatedNeMo(annotatedNeMo)
 {
-    annotatedProgram = parsic(annotatedNeMoGrammar(),annotatedNeMo,subDivChoicePegActions);
+    annotatedProgram = parsic(annotatedNeMoGrammar(),annotatedNeMo,annotatedPegActions);
     errorsMsg = checkAnnotatedErrors(annotatedProgram);
     println(errorsMsg);
     if ("" == errorsMsg)
         Some(annotatedProgram)
     else
     {
-        println(annotatedNeMo2str(annotatedProgram));
+        println(annotatedNeMo2s(annotatedProgram));
         None();
     }
 }

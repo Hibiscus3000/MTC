@@ -13,5 +13,7 @@ VAR a : INT;
                 x := x;
             } else x:= y*3;
     };
+    if (x > 3) x:= y *3
+    else y := x +3;
     print(x + 3);
 }
