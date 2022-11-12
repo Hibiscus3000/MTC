@@ -1,0 +1,14 @@
+import MTC/lab14/vc;
+
+export
+{
+    ccg(annotatedProgram : AnnotatedProgram) -> [Formula];
+}
+
+ccg(annotatedProgram)
+{
+    annotatedBody = annotatedProgram.program.annotatedBody;
+    postconditionFormula = annotatedProgram.postcondition.formula;
+    arrayPush(vc(annotatedBody,postconditionFormula),
+        AImplication(annotatedProgram.precondition.formula,ac(annotatedBody,postconditionFormula)));
+}

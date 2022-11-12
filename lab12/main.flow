@@ -5,7 +5,7 @@ import MTC/lab12/configs2s;
 
 main()
 {
-    /*nemo = parseNeMoFileNoRs("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/11.nem");
+    /*nemo = parseNeMoFileNoRs("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/nem/4.nem");
     println(program2s(nemo) + "\n");
     vm = NeMoProg2NVM(nemo);
     println(NVM2s(Some(vm)));*/

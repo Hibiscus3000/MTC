@@ -85,6 +85,11 @@ formula2s(formula,underOperationPriority)
             operationPriority := 0;
             "∃ " + declaration2s(declaration) + " " +  formula2s(existsFormula,7); 
         }
+        RelationAtom() : 
+        {
+            operationPriority := 0;
+            relationAtom2s(formula);
+        }
         AEquivalent(f1,f2) :
         {
             operationPriority := 1;
@@ -93,7 +98,7 @@ formula2s(formula,underOperationPriority)
         AImplication(f1,f2) :
         {
             operationPriority := 2;
-            formula2s(f1,2) + " -> " + formula2s(f2,2);
+            formula2s(f1,5) + " -> " + formula2s(f2,5);
         }
         AOr(f1,f2) :
         {
@@ -104,11 +109,6 @@ formula2s(formula,underOperationPriority)
         {
             operationPriority := 4;
             formula2s(f1,4) + " && " + formula2s(f2,4);
-        }
-        RelationAtom() : 
-        {
-            operationPriority := 5;
-            relationAtom2s(formula);
         }
         True() : 
         {

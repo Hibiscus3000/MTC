@@ -64,10 +64,14 @@ checkBody(body, declsTree)
                 (if (isComplicated(expr) && !isInt(expr,declsTree))
                     "Right side of \"" + body2s(body,"") + "\" is not INT\n"
                 else
-                    (if (getExprType(varApply,declsTree) != getExprType(expr,declsTree))
-                        "Types of right and left sides of assignment \"" + body2s(body,"") + "\" do not match\n"
+                    (if (!isSome(getArrayInApply(varApply,LeftSide())))
+                        "Attempt to use UPD as array argument inside left side assignment in\"" + body2s(body,"") +
+                            "\"\n"
                     else
-                        ""))
+                        (if (getExprType(varApply,declsTree) != getExprType(expr,declsTree))
+                            "Types of right and left sides of assignment \"" + body2s(body,"") + "\" do not match\n"
+                        else
+                            "")))
                 + fold(typeMismatches,"",\acc,typeMismatch -> acc + typeMismatch + "\n");
             }
         }

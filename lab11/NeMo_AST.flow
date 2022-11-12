@@ -64,6 +64,11 @@ export
     }
 
     NeMoGrammar() -> [PegOp];
+
+    ApplySide ::= LeftSide,RightSide;
+        LeftSide();
+        RightSide();
+    getArrayInApply(array : Expr,applySide : ApplySide) -> Maybe<Var>;
 }
 
 NeMoGrammarOps : ref Maybe<[PegOp]> = ref None();
@@ -88,4 +93,34 @@ NeMoGrammar()
 	onlyOnce(NeMoGrammarOps, \ -> {
 		compilePegGrammar("#include MTC/lab11/NeMo_grammar.lingo");
 	});
+}
+
+getArrayInApply(array, applySide)
+{
+    switch (array : Expr)
+    {
+        Arithmetic() :
+            switch (array : Arithmetic)
+            {
+                Operand() :
+                    switch(array : Operand)
+                    {
+                        VarApply() :
+                            switch(array : VarApply)
+                            {
+                                Var(s) : Some(array);
+                                Apply(array1,index1) : getArrayInApply(array1,applySide);
+                            }
+                        Int(i) : None();
+                    }
+                default : None();
+            }
+        Update(array1,index1,new_value1) :
+        {
+            if ("LeftSide" == applySide.structname)
+                None()
+            else
+                getArrayInApply(array1,applySide);
+        }
+    }
 }

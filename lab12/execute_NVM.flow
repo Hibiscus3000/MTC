@@ -145,32 +145,8 @@ getVarsNewValue(varApply, newValue, stateSpace : StateSpace) -> Maybe<StateSpace
                         None()
                     else
                         Some(StateSpace(setTree(stateSpace.varStates, arrayInApply, calcUpdate))))
-                    (getArrayInApply(array),calcUpdate(Update(array,index,newValue),stateSpace));
+                    (getArrayInApply(array,LeftSide()),calcUpdate(Update(array,index,newValue),stateSpace));
         }
-    }
-}
-
-getArrayInApply(array)
-{
-    switch (array : Expr)
-    {
-        Arithmetic() :
-            switch (array : Arithmetic)
-            {
-                Operand() :
-                    switch(array : Operand)
-                    {
-                        VarApply() :
-                            switch(array : VarApply)
-                            {
-                                Var(s) : Some(array);
-                                Apply(array1,index1) : getArrayInApply(array1);
-                            }
-                        Int(i) : None();
-                    }
-                default : None();
-            }
-        Update(array1,index1,new_value1) : None();
     }
 }
 

@@ -1,0 +1,49 @@
+import MTC/lab14/ac;
+
+export
+{
+    vc(annotatedBody : AnnotatedBody,formula : Formula) -> [Formula];
+}
+
+vc(annotatedBody,formula)
+{
+    switch(annotatedBody : AnnotatedBody)
+    {
+        Assignment(varApply,expr) : [];
+        AnnotatedTest() : vcTest(annotatedBody,formula);
+        AnnotatedSequence(annotatedBodies) :
+        {
+            bodiesLength = length(annotatedBodies);
+            if (0 == bodiesLength)
+                []
+            else
+            {
+                lastBody = annotatedBodies[bodiesLength - 1];
+                concat(vc(AnnotatedSequence(removeIndex(annotatedBodies,bodiesLength - 1)),ac(lastBody,formula)),
+                    vc(lastBody,formula));
+            }
+        }
+        AnnotatedChoice(bodies) :
+            fold(bodies,[],\acc,annBody -> concat(acc,vc(annBody,formula)));
+        AnnotatedIteration(invariant, sequence) :
+            arrayPush(vc(sequence,invariant),AImplication(invariant,formula));
+    }
+}
+
+vcTest(annotatedTest,formula)
+{
+    switch (annotatedTest : AnnotatedTest)
+    {
+        SimpleTest(relation) : [];
+        AnnotatedIf(relation,op_if,op_else) :
+        {
+            if (1 == length(op_else))
+                concat(vc(op_if,formula),vc(op_else[0],formula))
+            else
+                vc(op_if,formula);
+        }
+        AnnotatedWhile(invariant,relation,annotatedBody) :
+            concat(vc(annotatedBody,invariant),[AImplication(AAnd(invariant,ANot(r2f(relation))),formula),
+                AImplication(AAnd(invariant,r2f(relation)),ac(annotatedBody,invariant))]);
+    }
+}

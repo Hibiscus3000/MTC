@@ -1,0 +1,13 @@
+{
+    x - z == y && z == x - y
+}
+VAR x : INT;
+VAR y : INT;
+VAR z : INT;
+{
+    z := x - z;
+    x := z;
+}
+{
+    z == y && z == x
+}

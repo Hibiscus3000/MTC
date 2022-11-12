@@ -4,6 +4,8 @@ VAR y : [INT ARRAY OF [INT]];
 VAR z : [[INT] ARRAY OF [INT ARRAY OF INT]];
 VAR a : INT;
 {
+    APP(UPD(x,1,1),1) := a;
+    a := APP(UPD(x,1,1),1);
     a := x[a + 13 * a];
     if (x > 3)
     {
@@ -13,6 +15,7 @@ VAR a : INT;
                 x := x;
             } else x:= y*3;
     };
+    a := APP(x,1);
     if (x > 3) x:= y *3
     else y := x +3;
     print(x + 3);

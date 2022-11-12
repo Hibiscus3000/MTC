@@ -1,0 +1,277 @@
+import MTC/lab13/annotatedNeMo;
+
+export
+{
+    ac(annotatedBody : AnnotatedBody, formula : Formula) -> Formula;
+    r2f(relation : Relation) -> Formula;
+}
+
+ac(annotatedBody,formula)
+{
+    switch (annotatedBody : AnnotatedBody)
+    {
+        Assignment(varApply,expr) : acAssignment(formula,varApply,expr);
+        AnnotatedTest() : acTest(annotatedBody,formula);
+        AnnotatedSequence(annotatedBodies) :
+            fold(reverseA(annotatedBodies),formula,\acc,annBody -> ac(annBody,acc));
+        AnnotatedChoice(annotatedBodies) :
+        {
+            firstBody = annotatedBodies[0];
+            fold(removeIndex(annotatedBodies,0),ac(firstBody,formula), \acc,annBody -> AAnd(acc,ac(annBody,formula)));
+        }
+        AnnotatedIteration(invariant,annotatedSequence) : invariant;
+    }
+}
+
+acAssignment(formula, varApply, expr)
+{
+    oldValue =
+        switch (varApply : VarApply)
+        {
+            Var(s) : Some(varApply);
+            Apply(array,index) : getArrayInApply(array,LeftSide());
+        }
+    newValue =
+        switch (varApply : VarApply)
+        {
+            Var(s) : expr;
+            Apply(array,index) : Update(array,index,expr);
+        }
+    formulaSubstitution(formula,oldValue,newValue);
+}
+
+acTest(test,formula)
+{
+    switch (test : AnnotatedTest)
+    {
+        SimpleTest(relation) : AImplication(r2f(relation),formula);
+        AnnotatedIf(relation,op_if,op_else) :
+            AOr(AAnd(r2f(relation),ac(op_if,formula)),
+                AAnd(ANot(r2f(relation)),if (1 == length(op_else)) ac(op_else[0],formula) else formula));
+        AnnotatedWhile(invariant,relation,annotatedBody) :
+            invariant;
+    }
+}   
+
+formulaSubstitution(formula, oldValue : Maybe<Var>, newValue : Expr)
+{
+    switch (formula : Formula)
+    {
+        AImplication(f1,f2) :
+        {
+            f1s = formulaSubstitution(f1,oldValue,newValue);
+            f2s = formulaSubstitution(f2,oldValue,newValue);
+            if ("False" == f1s.structname || "True" == f2s.structname) 
+                True()
+            else
+            {
+                if ("True" == f1s.structname && "False" == f2s.structname)
+                    False()
+                else
+                    AImplication(f1s,f2s);
+            }
+        }
+        AEquivalent(f1,f2) :
+        {
+            f1s = formulaSubstitution(f1,oldValue,newValue);
+            f2s = formulaSubstitution(f2,oldValue,newValue);
+            if (("False" == f1s.structname || "True" == f1s.structname) && f1s.structname == f2s.structname)
+                True()
+            else
+            {
+                if ("False" == f1s.structname && "True" == f2s.structname
+                    || "True" == f1s.structname && "False" == f2s.structname)
+                    False()
+                else
+                    AEquivalent(f1s,f2s);
+            }
+        }
+        AOr(f1,f2) :
+        {
+            f1s = formulaSubstitution(f1,oldValue,newValue);
+            f2s = formulaSubstitution(f2,oldValue,newValue);
+            if ("True" == f1s.structname || "True" == f2s.structname)
+                True()
+            else
+            {
+                if ("False" == f1s.structname && "False" == f2s.structname)
+                    False()
+                else
+                    AOr(f1s,f2s);
+            }
+        }
+        AAnd(f1,f2) :
+        {
+            f1s = formulaSubstitution(f1,oldValue,newValue);
+            f2s = formulaSubstitution(f2,oldValue,newValue);
+            if ("False" == f1s.structname || "False" == f2s.structname)
+                False()
+            else
+            {
+                if ("True" == f1s.structname && "True" == f2s.structname)
+                    True()
+                else
+                    AAnd(f1s,f2s);
+            }
+        }
+        ANot(f1) :
+        {
+            f1s = formulaSubstitution(f1,oldValue,newValue);
+            if ("False" == f1s.structname)
+                True()
+            else
+            {
+                if ("True" == f1s.structname)
+                    False()
+                else
+                    ANot(f1s);
+            }
+        }
+        FormulaAtom() : formulaAtomSubstitution(formula,oldValue,newValue);
+    }
+}
+
+formulaAtomSubstitution(formulaAtom,oldValue : Maybe<Var>,newValue : Expr)
+{
+    switch (formulaAtom : FormulaAtom)
+    {
+        RelationAtom() : relationAtomSubstitution(formulaAtom, oldValue, newValue);
+        Any(declaration,anyFormula) : Any(declaration,formulaSubstitution(anyFormula,oldValue,newValue));
+        Exists(declaration,existsFormula) : Exists(declaration,formulaSubstitution(existsFormula,oldValue,newValue));
+        True() : formulaAtom; 
+        False() : formulaAtom;
+    }
+}
+
+relationAtomSubstitution(relationAtom,oldValue : Maybe<Var>,newValue : Expr) -> Formula
+{
+    switch (relationAtom : RelationAtom)
+    {
+        LesserEquals(a1,a2) : makeRelationAtomSubstitution(a1,a2,oldValue,newValue,makeLesserEquals);
+        GreaterEquals(a1,a2) : makeRelationAtomSubstitution(a1,a2,oldValue,newValue,makeGreaterEquals);
+        Lesser(a1,a2) : makeRelationAtomSubstitution(a1,a2,oldValue,newValue,makeLesser);
+        Greater(a1,a2) : makeRelationAtomSubstitution(a1,a2,oldValue,newValue,makeGreater);
+        Equals(a1,a2) : makeRelationAtomSubstitution(a1,a2,oldValue,newValue,makeEquals);
+        NotEquals(a1,a2) : makeRelationAtomSubstitution(a1,a2,oldValue,newValue,makeNotEquals);
+    }
+}
+
+makeRelationAtomSubstitution(a1,a2, oldValue : Maybe<Var>,newValue : Expr,make) -> RelationAtom
+{
+    make(arithmeticSubstitution(a1,oldValue,newValue),arithmeticSubstitution(a2,oldValue,newValue));
+}
+
+makeLesserEquals(a1,a2)
+{
+    LesserEquals(a1,a2);
+}
+
+makeGreaterEquals(a1,a2)
+{
+    GreaterEquals(a1,a2);
+}
+
+makeLesser(a1,a2)
+{
+    Lesser(a1,a2);
+}
+
+makeGreater(a1,a2)
+{
+    Greater(a1,a2);
+}
+
+makeEquals(a1,a2)
+{
+    Equals(a1,a2);
+}
+
+makeNotEquals(a1,a2)
+{
+    NotEquals(a1,a2);
+}
+
+arithmeticSubstitution(arithmetic : Arithmetic,oldValue : Maybe<Var>,newValue : Expr) -> Arithmetic
+{
+    switch (arithmetic : Arithmetic)
+    {
+        Div(a1,a2) : makeArithmeticSubstitution(a1,a2,oldValue,newValue,makeDiv);
+        Product(a1,a2) : makeArithmeticSubstitution(a1,a2,oldValue,newValue,makeProduct);
+        Sub(a1,a2) : makeArithmeticSubstitution(a1,a2,oldValue,newValue,makeSub);
+        Add(a1,a2) : makeArithmeticSubstitution(a1,a2,oldValue,newValue,makeAdd);
+        Neg(a1) : Neg(arithmeticSubstitution(a1,oldValue,newValue));
+        Operand() : operandSubstitution(arithmetic,oldValue,newValue);
+    }
+}
+
+makeArithmeticSubstitution(a1,a2,oldValue : Maybe<Var>,newValue : Expr,make) -> Arithmetic
+{
+    make(arithmeticSubstitution(a1,oldValue,newValue),arithmeticSubstitution(a2,oldValue,newValue));
+}
+
+makeDiv(a1,a2)
+{
+    Div(a1,a2);
+}
+
+makeProduct(a1,a2)
+{
+    Product(a1,a2);
+}
+
+makeSub(a1,a2)
+{
+    Sub(a1,a2);
+}
+
+makeAdd(a1,a2)
+{
+    Add(a1,a2);
+}
+
+operandSubstitution(operand,oldValue : Maybe<Var>,newValue : Expr) -> Arithmetic
+{
+    switch(operand : Operand)
+    {
+        Int(i) : operand; // should not happen
+        Var(s) : 
+        {
+            eitherMap(oldValue, \oldVal ->
+            {
+                if (operand == oldVal)
+                {
+                    switch(newValue : Expr)
+                    {
+                        Arithmetic() : newValue;
+                        Update(array,index,new_value) : operand; // should not happen because only INT can be a part of a formula
+                    }
+                }
+                else
+                    operand;
+            },operand);
+        }
+        Apply(array,index) : Apply(exprSubstitution(array,oldValue,newValue),exprSubstitution(index,oldValue,newValue));
+    }
+}
+
+exprSubstitution(expr,oldValue,newValue)
+{
+    switch (expr : Expr)
+    {
+        Arithmetic() : arithmeticSubstitution(expr,oldValue,newValue);
+        Update(array,index,new_value) :
+            Update(exprSubstitution(array,oldValue,newValue),exprSubstitution(index,oldValue,newValue),
+                exprSubstitution(new_value,oldValue,newValue));
+    }
+}
+
+r2f(relation)
+{
+    switch(relation : Relation)
+    {
+        Or(r1,r2) : AOr(r2f(r1),r2f(r2));
+        And(r1,r2) : AAnd(r2f(r1),r2f(r2));
+        Not(r1) : ANot(r2f(r1));
+        RelationAtom() : relation;
+    }
+}

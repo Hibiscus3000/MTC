@@ -14,7 +14,7 @@ ann_relation_atom = relation_atom
     | "TRUE" {True()}
     | "FALSE" {False()};
 
-program = declarations:decls ws* sequence:sequence ws* {Program(:decls,:sequence)};
+program = declarations:decls ws* sequence:sequence ws* {NeMoProgram(:decls,:sequence)};
 
 declarations = '{' ws* declaration_semicolon*:decls '}' {:decls} | declaration_semicolon*;
 declaration_semicolon = declaration:d ';' ws* {:d};
@@ -47,7 +47,7 @@ neg = ws* '-' neg:n {Neg(:n)} | parentheses;
 parentheses = ws* '(' ws* arithmetic:a ws* ')' {:a} | ws* operand;
 
 apply = ws* "APP(" (update | apply_var):array ',' ws? expr:index ')' {Apply(:array,:index)}
-     | ws* (update | var):array '[' expr:index ']' {Apply(:array,:index)};
+     | ws* var:array '[' expr:index ']' {Apply(:array,:index)};
 update = ws* "UPD(" (update | apply_var):array ',' ws? expr:index ',' ws? expr:new_value ')'
     {Update(:array,:index,:new_value)}; 
 
