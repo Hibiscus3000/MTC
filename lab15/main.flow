@@ -1,0 +1,14 @@
+import MTC/lab15/cc2z3;
+import MTC/lab13/parseANeMo;
+
+main()
+{
+    annotatedProgram = parseAnnotatedNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab13/1.anem");
+    println(eitherMap(annotatedProgram,annotatedNeMo2s,""));
+    ccs = eitherMap(annotatedProgram, ccg, []);
+    ccStr = foldi(ccs,"",\i,acc,cc ->  acc + i2s(i + 1) + ") " + formula2s(cc,0) + "\n");
+    println("\n" + ccStr);
+    ccsZ3 = eitherMap(annotatedProgram,\annProg -> cc2z3(annProg,ccs),"");
+    println(ccsZ3);
+    quit(0);
+}

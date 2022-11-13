@@ -93,7 +93,8 @@ checkOperator(label,operator,declsTree)
 {
     switch (operator : Operator)
     {
-        OTest(relation,if_goto,else_goto) : formRelationErrorsMsg(relation,declsTree,"(",")");
+        OTest(relation,if_goto,else_goto) : formRelationErrorsMsg(relation,declsTree,
+            "(",")","Attempt to use undeclared variable");
         OAssignment(assignment, goto) :
         {
             varApply = assignment.varApply;

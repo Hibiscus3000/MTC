@@ -1,0 +1,122 @@
+import MTC/lab14/ccg;
+
+export
+{
+    cc2z3(annotatedProgram : AnnotatedProgram, cc : [Formula]) -> string;
+    annotatedNeMo2z3(annotatedProgram : AnnotatedProgram) -> string;
+}
+
+cc2z3(annotatedProgram, cc)
+{
+    decls = declarations2z3(concat(annotatedProgram.precondition.declarations,annotatedProgram.program.declarations));
+    formulasZ3 = formulas2z3(cc);
+    notFormulasZ3 = fold(formulasZ3,[],\acc,formula -> arrayPush(acc,"(not " + formula + ")"));
+    decls + "(push)\n" + getAssertionsStr(notFormulasZ3) + "(check-sat)\n(pop)\n"
+        + getAssertionsStr(formulasZ3) + "(check-sat)\n(get-model)";
+}
+
+annotatedNeMo2z3(annotatedProgram)
+{
+    cc2z3(annotatedProgram,ccg(annotatedProgram));
+}
+
+declarations2z3(declarations)
+{
+    fold(declarations,"",\acc,declaration ->
+        acc + "(declare-const " + declaration2z3(declaration) + ")\n");
+}
+
+declaration2z3(declaration)
+{   
+    declaration.var.s + " " + type2z3(declaration.type);
+}
+
+type2z3(type)
+{
+    switch (type : Type)
+    {
+        IntType() : "Int";
+        ArrayType(indexingType,valueType) : "(Array " + type2z3(indexingType) + " " + type2z3(valueType) + ")"
+    }
+}
+
+formulas2z3(formulas)
+{
+    fold(formulas,[],\acc,formula -> arrayPush(acc,formula2z3(formula)));
+}
+
+formula2z3(formula)
+{
+    switch (formula : Formula)
+    {
+        AImplication(f1, f2) : "(=> " + formula2z3(f1) + " " + formula2z3(f2) + ")";
+        AEquivalent(f1, f2) : "(= " + formula2z3(f1) + " " + formula2z3(f2) + ")";
+        AOr(f1, f2) : "(or " + formula2z3(f1) + " " + formula2z3(f2) + ")";
+        AAnd(f1, f2) : "(and " + formula2z3(f1) + " " + formula2z3(f2) + ")";
+        ANot(f) : "(not " + formula2z3(f) + ")";
+        FormulaAtom() : formulaAtom2z3(formula);
+    }
+}
+
+formulaAtom2z3(formulaAtom)
+{
+    switch (formulaAtom : FormulaAtom)
+    {
+        RelationAtom() : relationAtom2z3(formulaAtom);
+        Any(declaration, anyFormula) : "(forall ((" + declaration2z3(declaration) + ")) " + formula2z3(anyFormula);
+        Exists(declaration, existsFormula) : "(exists ((" + declaration2z3(declaration) + ")) " + formula2z3(existsFormula);
+        True() : "true";
+        False() : "false";
+    }
+}
+
+relationAtom2z3(relationAtom)
+{
+    switch (relationAtom : RelationAtom)
+    {
+        LesserEquals(a1,a2) : "(<= " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        GreaterEquals(a1,a2) : "(>= " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        Lesser(a1,a2) : "(< " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        Greater(a1,a2) : "(> " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        Equals(a1,a2) : "(= " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        NotEquals(a1,a2) : "(distinct " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+    }
+}
+
+expr2z3(expr)
+{
+    switch (expr : Expr)
+    {
+        Arithmetic() : arithmetic2z3(expr);
+        Update(array,index,new_value) :
+            "(store " + expr2z3(array) + " " + expr2z3(index) + " " + expr2z3(new_value) + ")";
+    }
+}
+
+arithmetic2z3(arithmetic)
+{
+    switch (arithmetic : Arithmetic)
+    {
+        Div(a1,a2) : "(/ " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        Product(a1,a2) : "(* " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        Sub(a1,a2) : "(- " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        Add(a1,a2) : "(+ " + arithmetic2z3(a1) + " " + arithmetic2z3(a2) + ")";
+        Neg(a) : "(-" + arithmetic2z3(a) + ")"
+        Operand() : operand2z3(arithmetic);
+    }
+}
+
+operand2z3(operand)
+{
+    switch (operand : Operand)
+    {
+        Int(i) : i2s(i);
+        Var(s) : s;
+        Apply(array,index) : "(select " + expr2z3(array) + " " + expr2z3(index) + ")";
+    }
+}
+
+getAssertionsStr(formulas : [string])
+{
+    fold(formulas,"",\assertions,formula -> assertions + "(assert " + formula + ")\n");
+}

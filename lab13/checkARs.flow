@@ -78,13 +78,15 @@ checkAnnotatedTest(annotatedTest,declsTree,programVariablesDeclsTree)
 {
     switch(annotatedTest : AnnotatedTest)
     {
-        SimpleTest(relation) : checkTest(annotatedTest,declsTree);
+        SimpleTest(relation) : formRelationErrorsMsg(relation,declsTree,
+                "(",") ?","Attempt to use undeclared or bound variable")
         AnnotatedWhile(invariant,relation,annotatedBody) :
-            formFormulaErrorsMsg(invariant,declsTree) + formRelationErrorsMsg(relation,declsTree,"while (",")")
-                + checkAnnotatedBody(annotatedBody,declsTree,programVariablesDeclsTree);
+            formFormulaErrorsMsg(invariant,declsTree) + formRelationErrorsMsg(relation,declsTree,
+                "while (",")","Attempt to use undeclared or bound variable")
+                    + checkAnnotatedBody(annotatedBody,declsTree,programVariablesDeclsTree);
         AnnotatedIf(relation,op_if,op_else) :
         {
-            formRelationErrorsMsg(relation,declsTree,"if (",")")
+            formRelationErrorsMsg(relation,declsTree,"if (",")","Attempt to use undeclared or bound variable")
             + checkAnnotatedBody(op_if,declsTree,programVariablesDeclsTree)
             + if (1 == length(op_else)) checkAnnotatedBody(op_else[0],declsTree,programVariablesDeclsTree) else "";
         }
