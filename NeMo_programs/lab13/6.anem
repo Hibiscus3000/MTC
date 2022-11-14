@@ -1,5 +1,5 @@
 {
-    A == APP(APP(UPD(APP(x,1),1,3),3),1) && y >= 3 && APP(array,3) == 3
+    A == APP(UPD(APP(x,1),1,3),3) && y >= 3 && APP(array,3) == 3
 }
 {
     VAR A : INT;
@@ -12,5 +12,5 @@
     x := UPD(x,1,APP(x,3));
 }
 {
-    A == APP(APP(UPD(APP(x,1),1,3),3),1) && y >= 3 && APP(array,3) == 3
+    A == APP(UPD(APP(x,1),1,3),3) && y >= 3 && APP(array,3) == 3
 }   

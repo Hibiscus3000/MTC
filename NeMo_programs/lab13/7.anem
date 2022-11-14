@@ -1,0 +1,13 @@
+{
+    A == APP(APP(UPD(x,3,APP(x,3)),3),3)
+}
+{
+    VAR x : [[INT]];
+    VAR A : INT;
+}
+{
+
+}
+{
+    A == APP(APP(UPD(x,3,APP(x,3)),3),3)
+}

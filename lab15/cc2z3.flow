@@ -63,8 +63,10 @@ formulaAtom2z3(formulaAtom)
     switch (formulaAtom : FormulaAtom)
     {
         RelationAtom() : relationAtom2z3(formulaAtom);
-        Any(declaration, anyFormula) : "(forall ((" + declaration2z3(declaration) + ")) " + formula2z3(anyFormula);
-        Exists(declaration, existsFormula) : "(exists ((" + declaration2z3(declaration) + ")) " + formula2z3(existsFormula);
+        Any(declaration, anyFormula) :
+            "(forall ((" + declaration2z3(declaration) + ")) " + formula2z3(anyFormula) + ")";
+        Exists(declaration, existsFormula) :
+            "(exists ((" + declaration2z3(declaration) + ")) " + formula2z3(existsFormula) + ")";
         True() : "true";
         False() : "false";
     }
