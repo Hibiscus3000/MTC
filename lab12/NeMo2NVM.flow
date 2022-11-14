@@ -52,6 +52,7 @@ body2LabeledOperatorsTree(body)
 {
     labeledOperators = body2LabeledOperators1(body,0,None());
     makeLabeledOperatorsTree(labeledOperators,getEmptiesLabelsAndGotosTree(labeledOperators));
+    //makeLabeledOperatorsTree(labeledOperators,makeTree());
 }
 
 getEmptiesLabelsAndGotosTree(labeledOperators)
@@ -211,8 +212,9 @@ changeGoto(labeledOperator, substitutionGoto)
     }*
 
 
-    итерация должна всегда начинаться с пустого оператора, который в goto содержит также метку, которая метит операторы
-    после итерации, так как тело итерации может выполниться 0 раз, причем их нельзя убирать
+    итерация должна всегда начинаться с пустого оператора, который метит операторы
+    после итерации, так как тело итерации может выполниться 0 раз, причем эти пустые операторы иногда нельзя убирать
+    (например, если такой стоит в самом начале программы)
 
     все тесты аналогично должны заканчиваться пустым оператором для корректности работы случая, когда
     они вложены в итерацию или недетерминированный выбор (кроме случая goto {})
