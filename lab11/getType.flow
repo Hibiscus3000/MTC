@@ -52,7 +52,7 @@ getOperandType(operand,declsTree) -> Maybe<Type>
             switch(type : Type)
             {
                 ArrayType(indexingType,valueType) : Some(valueType);
-                IntType() : None();
+                IntType() : None(); // это правильно
             });
         }
     }
