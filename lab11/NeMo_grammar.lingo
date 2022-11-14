@@ -1,6 +1,6 @@
 program = declarations:decls ws* sequence:sequence ws* {Program(:decls,:sequence)};
 
-declarations = '{' ws* declaration_semicolon*:decls '}' {:decls} | declaration_semicolon*;
+declarations = '{' ws* declaration_semicolon+:decls '}' {:decls} | declaration_semicolon*;
 declaration_semicolon = declaration:d ';' ws* {:d};
 declaration = "VAR" ws* var:v ws* ':' ws* type:t {Declaration(:v,:t)};
 type = "INT" {IntType()}

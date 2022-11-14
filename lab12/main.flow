@@ -19,7 +19,7 @@ main()
     println(eitherMap(configurations,configurations2sFull,""));*/
 
 
-    /*vm = parseNVMFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/vm/6.vm");
+    /*vm = parseNVMFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab12/vm/5.vm");
     println(NVM2s(Some(vm)) + "\n");
     configurations = executeNVM(vm);
     println(eitherMap(configurations,configurations2s,""));*/

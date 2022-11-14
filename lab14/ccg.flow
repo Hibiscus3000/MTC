@@ -1,14 +1,21 @@
 import MTC/lab14/vc;
+import MTC/lab13/annotatedNeMo2s;
 
 export
 {
     ccg(annotatedProgram : AnnotatedProgram) -> [Formula];
+    ccs2s(ccs : [Formula]) -> string;
 }
 
 ccg(annotatedProgram)
 {
     annotatedBody = annotatedProgram.program.annotatedBody;
     postconditionFormula = annotatedProgram.postcondition.formula;
-    arrayPush(vc(annotatedBody,postconditionFormula),
-        AImplication(annotatedProgram.precondition.formula,ac(annotatedBody,postconditionFormula)));
+    uniq(arrayPush(vc(annotatedBody,postconditionFormula),
+        AImplication(annotatedProgram.precondition.formula,ac(annotatedBody,postconditionFormula))));
+}
+
+ccs2s(ccs)
+{
+    foldi(ccs,"",\i,acc,cc ->  acc + i2s(i + 1) + ") " + formula2s(cc,0) + "\n");
 }

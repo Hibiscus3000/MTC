@@ -1,4 +1,4 @@
-import MTC/lab11/get_type;
+import MTC/lab11/getType;
 import MTC/lab11/NeMo2s;
 
 export

@@ -2,7 +2,7 @@ import MTC/lab11/parse_NeMo;
 
 main()
 {
-    result = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab11/4.nem");
+    result = parseNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab11/6.nem");
     println(eitherMap(result,program2s,""));
     quit(0);
 }

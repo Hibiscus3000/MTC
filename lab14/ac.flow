@@ -239,18 +239,27 @@ operandSubstitution(operand,oldValue : Maybe<Var>,newValue : Expr) -> Arithmetic
             eitherMap(oldValue, \oldVal ->
             {
                 if (operand == oldVal)
-                {
-                    switch(newValue : Expr)
                     {
-                        Arithmetic() : newValue;
-                        Update(array,index,new_value) : operand; // should not happen because only INT can be a part of a formula
+                        switch(newValue : Expr)
+                        {
+                            Arithmetic() : newValue;
+                            Update(array,index,new_value) : operand;
+                                // should not happen
+                        }
                     }
-                }
                 else
                     operand;
             },operand);
         }
-        Apply(array,index) : Apply(exprSubstitution(array,oldValue,newValue),exprSubstitution(index,oldValue,newValue));
+        Apply(array,index) : 
+        {
+            eitherMap(oldValue, \oldVal ->
+            if (array == oldVal)
+                Apply(newValue,exprSubstitution(index,oldValue,newValue))
+            else
+                Apply(exprSubstitution(array,oldValue,newValue),exprSubstitution(index,oldValue,newValue)),
+                Apply(exprSubstitution(array,oldValue,newValue),exprSubstitution(index,oldValue,newValue)));
+        }
     }
 }
 

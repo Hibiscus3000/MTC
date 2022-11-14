@@ -2,6 +2,8 @@ VAR v : INT;
 VAR x : [INT];
 
 {
+    (3 == APP(x,3)) ?;
+    v := x[1] + x[2] + APP(x,3);
     v := 7;
     x[v + v] := v;
     v := APP(UPD(x,10,5),x[14] + 3);

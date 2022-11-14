@@ -19,8 +19,8 @@ vc(annotatedBody,formula)
             else
             {
                 lastBody = annotatedBodies[bodiesLength - 1];
-                concat(vc(AnnotatedSequence(removeIndex(annotatedBodies,bodiesLength - 1)),ac(lastBody,formula)),
-                    vc(lastBody,formula));
+                concat(vc(AnnotatedSequence(removeIndex(annotatedBodies,bodiesLength - 1)),
+                    ac(lastBody,formula)), vc(lastBody,formula));
             }
         }
         AnnotatedChoice(bodies) :
