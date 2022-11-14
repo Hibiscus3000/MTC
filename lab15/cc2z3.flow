@@ -10,8 +10,7 @@ cc2z3(annotatedProgram, cc)
 {
     decls = declarations2z3(concat(annotatedProgram.precondition.declarations,annotatedProgram.program.declarations));
     formulasZ3 = formulas2z3(cc);
-    notFormulasZ3 = fold(formulasZ3,[],\acc,formula -> arrayPush(acc,"(not " + formula + ")"));
-    decls + "(push)\n" + getAssertionsStr(notFormulasZ3) + "(check-sat)\n(pop)\n"
+    decls + "(push)\n" + getOneNotAssert(formulasZ3) + "(check-sat)\n(pop)\n"
         + getAssertionsStr(formulasZ3) + "(check-sat)\n(get-model)";
 }
 
@@ -42,7 +41,7 @@ type2z3(type)
 
 formulas2z3(formulas)
 {
-    fold(formulas,[],\acc,formula -> arrayPush(acc,formula2z3(formula)));
+    map(formulas,formula2z3);
 }
 
 formula2z3(formula)
@@ -121,4 +120,10 @@ operand2z3(operand)
 getAssertionsStr(formulas : [string])
 {
     fold(formulas,"",\assertions,formula -> assertions + "(assert " + formula + ")\n");
+}
+
+getOneNotAssert(formulas)
+{
+    foldi(formulas,"(assert (and ",\i,assert,formula -> assert + "(not " + formula + ")"
+        + if (i != length(formulas) -1 ) "\n" else "") + "))\n";
 }

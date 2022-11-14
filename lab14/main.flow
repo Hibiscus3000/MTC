@@ -3,7 +3,7 @@ import MTC/lab13/parseANeMo;
 
 main()
 {
-    annotatedNeMoProg = parseAnnotatedNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab13/4.anem");
+    annotatedNeMoProg = parseAnnotatedNeMoFile("C:/Users/TS/flow9/lib/MTC/NeMo_programs/lab13/1.anem");
     println(eitherMap(annotatedNeMoProg,annotatedNeMo2s,""));
     ccs = eitherMap(annotatedNeMoProg,ccg,[]);
     println("\n" + ccs2s(ccs));
