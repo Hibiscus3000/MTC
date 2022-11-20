@@ -3,14 +3,14 @@ import MTC/lab7/AST;
 
 export
 {
-    compareAndExchangeArr(expr : Expr, identities : [Pair<Expr,Expr>]) -> Expr;
+    compareAndExchangeArr(expr : Expr, identities : [Pair<Expr,Expr>]) -> Tree<Expr,string>;
     compareAndExchange(expr : Expr, identity : Pair<Expr,Expr>) -> Expr;
     getDifficulty(expr : Expr) -> int;
 }
 
 compareAndExchangeArr(expr,identities)
 {
-    fold(identities,expr,\acc,identity -> compareAndExchange(acc,identity));
+    fold(identities,makeTree(),\tree,identity -> setTree(tree,compareAndExchange(expr,identity),""));
 }
 
 compareAndExchange(expr,identity)
