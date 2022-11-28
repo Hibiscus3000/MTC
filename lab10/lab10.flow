@@ -7,18 +7,20 @@ export
                 ,"a + b = b + a"
                 ,"a * b = b * a"
                 ,"a + (b + c) = (a + b) + c"
+                ,"(a - b) - c = (a - c) - b"
                 ,"a * (b * c) = (a * b) * c"
                 ,"a + -b = a - b"
                 ,"x*x - y*y = (x - y) * (x + y)"
-                ,"a*a + 2*a*b + b*b = (a + b)*(a + b)"
-                ,"a*a - 2*a*b + b*b = (a - b)*(a - b)"
                 ,"a * b + a * c = a * (b + c)"
                 ,"a * b - a * c = a * (b - c)"
                 ,"a * 0 = 0"
                 ,"a * 1 = a"
                 ,"a + 0 = a"
+                ,"a - a = 0"
+                ,"a + a = 2 * a"
                 ];
     simplify(expr : Expr, identities : [string]) -> [Expr];
+    simplification2s(expr : Expr, simplified : [Expr]) -> string;
 }
 
 identityGrammarOp : ref Maybe<[PegOp]> = ref None();
@@ -111,4 +113,10 @@ makeSub(e1,e2)
 makeAdd(e1,e2)
 {
     Add(e1,e2);
+}
+
+simplification2s(expr, simplified)
+{
+    foldi(simplified,e2s(expr) + " ->\n",\i,acc,simplifiedExpr ->
+        acc + i2s(i + 1) + ") " + e2s(simplifiedExpr) + "\n");
 }
